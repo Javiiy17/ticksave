@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+import 'core/theme/app_theme.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'firebase_options.dart';
+
+/// Punto de entrada de la aplicación.
+///
+/// Aquí inicializamos Firebase antes de montar el árbol de widgets.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -13,19 +24,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'TickSave',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        // Color extraído de las imágenes (Azul vibrante)
-        primaryColor: const Color(0xFF1A73E8),
-        scaffoldBackgroundColor: const Color(0xFF1877F2), // Fondo azul general
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1877F2),
-          primary: const Color(0xFF1877F2),
-          secondary: const Color(0xFFFFFFFF),
-        ),
-        useMaterial3: true,
-        // Definimos estilo de fuente base (puedes usar Google Fonts más adelante)
-        fontFamily: 'Roboto',
-      ),
+      // Extraemos el tema a un archivo separado para mantener `main.dart` sencillo.
+      theme: appTheme,
       home: const LoginScreen(),
     );
   }
