@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "272225874893",
+    "project_id": "ticksave-d8abd",
+    "storage_bucket": "ticksave-d8abd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:272225874893:android:d2029dd4d51a51079e8a84",
+        "android_client_info": {
+          "package_name": "com.example.ticksave"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAu3l24tRfwczlbjVd_X4AP_2bh6k9jcf0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.8
+  sdk: ^3.10.7
 
 # AQUÍ ES DONDE SE PONEN LAS LIBRERÍAS
 dependencies:
@@ -13,6 +13,12 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   mobile_scanner: ^5.0.0  # <--- Aquí es donde debe ir, alineado con los de arriba
+  # Núcleo de Firebase: inicialización y configuración
+  firebase_core: ^4.5.0
+  # Autenticación de usuarios (email/contraseña, Google, etc.)
+  firebase_auth: ^6.2.0
+  # Base de datos Cloud Firestore para guardar tickets y alertas
+  cloud_firestore: ^6.1.3
 
 dev_dependencies:
   flutter_test:
