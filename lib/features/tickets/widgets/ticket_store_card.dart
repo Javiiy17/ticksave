@@ -1,5 +1,10 @@
+import 'dart:math' show max;
+
 import 'package:flutter/material.dart';
 
+import '../../../core/settings/app_settings_scope.dart';
+import '../../../core/utils/price_currency.dart';
+import '../../../core/utils/raster_image_url.dart';
 import '../models/ticket.dart';
 import '../screens/ticket_detail_screen.dart';
 
@@ -8,7 +13,7 @@ import '../screens/ticket_detail_screen.dart';
 /// - Muestra imagen de cabecera.
 /// - Nombre del comercio y número de tickets.
 /// - Lista horizontal de importes y fechas.
-/// - Al pulsar abre el detalle de un ticket.
+/// - Cada chip abre el detalle de ese ticket; la cabecera abre el primero.
 class TicketStoreCard extends StatelessWidget {
   const TicketStoreCard({
     super.key,
@@ -21,45 +26,58 @@ class TicketStoreCard extends StatelessWidget {
   /// Acción que permite editar la imagen de la tienda desde la pantalla padre.
   final VoidCallback onEditPressed;
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute<void>(
-            builder: (context) => TicketDetailScreen(
-              storeName: ticket.storeName,
-              date: ticket.dates.isNotEmpty ? ticket.dates.first : 'N/A',
-              price: ticket.prices.isNotEmpty ? ticket.prices.first : '0 €',
-              imageUrl: ticket.imageUrl,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            _buildHeaderImage(context),
-            _buildTicketChips(context),
-          ],
+  void _openTicketDetail(BuildContext context, int lineIndex) {
+    final date = lineIndex < ticket.dates.length
+        ? ticket.dates[lineIndex]
+        : 'N/A';
+    final price = lineIndex < ticket.prices.length
+        ? ticket.prices[lineIndex]
+        : '0 €';
+
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => TicketDetailScreen(
+          storeName: ticket.storeName,
+          date: date,
+          price: price,
+          imageUrl: ticket.imageUrl,
+          sourceTicket: ticket,
+          sourceLineIndex: lineIndex,
         ),
       ),
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _openTicketDetail(context, 0),
+            child: _buildHeaderImage(context),
+          ),
+          _buildTicketChips(context),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeaderImage(BuildContext context) {
+    final safeUrl = rasterHttpUrlOrPlaceholder(ticket.imageUrl);
     return Stack(
       children: [
         ClipRRect(
@@ -78,7 +96,7 @@ class TicketStoreCard extends StatelessWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: NetworkImage(ticket.imageUrl),
+                  image: NetworkImage(safeUrl),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -111,18 +129,19 @@ class TicketStoreCard extends StatelessWidget {
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: onEditPressed,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    size: 20,
-                    color: Colors.grey,
+              Material(
+                color: Colors.white,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onEditPressed,
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               ),
@@ -134,44 +153,64 @@ class TicketStoreCard extends StatelessWidget {
   }
 
   Widget _buildTicketChips(BuildContext context) {
+    final lineCount = max(ticket.prices.length, ticket.dates.length);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: SizedBox(
         height: 70,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
-          itemCount: ticket.prices.length,
+          itemCount: lineCount,
           separatorBuilder: (context, index) => const SizedBox(width: 12),
           itemBuilder: (context, index) {
-            return Container(
-              width: 120,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8F9FA),
+            final rawPrice = index < ticket.prices.length
+                ? ticket.prices[index]
+                : '—';
+            final symbol = AppSettingsScope.of(context).currencySymbol;
+            final price = rawPrice == '—'
+                ? rawPrice
+                : PriceCurrency.formatForDisplay(rawPrice, symbol);
+            final date = index < ticket.dates.length
+                ? ticket.dates[index]
+                : 'N/A';
+
+            return Material(
+              color: const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: () => _openTicketDetail(context, index),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    ticket.prices[index],
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                child: Container(
+                  width: 120,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    ticket.dates[index],
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        price,
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        date,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           },

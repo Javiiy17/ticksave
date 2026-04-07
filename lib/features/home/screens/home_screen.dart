@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/app_strings.dart';
 import '../../tickets/models/ticket.dart';
 import '../../tickets/screens/scan_ticket_screen.dart';
 import '../../tickets/screens/edit_store_image_screen.dart';
 import '../../tickets/widgets/ticket_store_card.dart';
+import '../../settings/screens/settings_screen.dart';
 import '../widgets/header_icon.dart';
 
 /// Pantalla principal que muestra el listado de tickets guardados.
@@ -98,6 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Franja superior azul con título y contador de tickets.
   Widget _buildHeader(BuildContext context) {
+    final t = AppStrings.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Row(
@@ -106,9 +110,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Mis Tickets',
-                style: TextStyle(
+              Text(
+                t.homeTitle,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -116,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${tickets.length} tickets guardados',
+                t.homeSavedCount(tickets.length),
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
@@ -125,10 +129,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           Row(
-            children: const [
-              HeaderIcon(icon: Icons.dark_mode_outlined),
-              SizedBox(width: 12),
-              HeaderIcon(icon: Icons.confirmation_number_outlined),
+            children: [
+              HeaderIcon(
+                icon: Icons.settings_outlined,
+                onTap: () {
+                  Navigator.push<void>(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (context) => const SettingsScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              const HeaderIcon(icon: Icons.confirmation_number_outlined),
             ],
           ),
         ],
@@ -167,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ElevatedButton.icon(
               onPressed: _goToScanScreen,
               icon: const Icon(Icons.camera_alt_outlined),
-              label: const Text('Escanear Ticket'),
+              label: Text(AppStrings.of(context).scanTicket),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1877F2),
                 foregroundColor: Colors.white,
