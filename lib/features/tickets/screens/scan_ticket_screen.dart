@@ -3,12 +3,10 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'ticket_detail_screen.dart';
 
-/// Pantalla encargada de escanear el código del ticket (QR o barras).
+/// Pantalla encargada de leer códigos del ticket (QR y códigos de barras).
 ///
-/// En esta primera versión:
-/// - Leemos el código con `mobile_scanner`.
-/// - Mostramos un pequeño estado de carga y éxito.
-/// - Navegamos a `TicketDetailScreen` con datos simulados.
+/// Usa decodificación de códigos (ML Kit vía `mobile_scanner`), no OCR de texto
+/// impreso: es el enfoque adecuado para EAN, UPC, Code 128, QR, etc.
 class ScanTicketScreen extends StatefulWidget {
   const ScanTicketScreen({super.key});
 
@@ -20,6 +18,21 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
     returnImage: false,
+    formats: const [
+      BarcodeFormat.qrCode,
+      BarcodeFormat.ean13,
+      BarcodeFormat.ean8,
+      BarcodeFormat.upcA,
+      BarcodeFormat.upcE,
+      BarcodeFormat.code128,
+      BarcodeFormat.code39,
+      BarcodeFormat.code93,
+      BarcodeFormat.codabar,
+      BarcodeFormat.itf,
+      BarcodeFormat.dataMatrix,
+      BarcodeFormat.pdf417,
+      BarcodeFormat.aztec,
+    ],
   );
 
   /// 0: Escaneando, 1: Procesando, 2: Éxito.
@@ -38,35 +51,62 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
     final barcodes = capture.barcodes;
     if (barcodes.isEmpty) return;
 
-    final String codeValue = barcodes.first.rawValue ?? 'Código desconocido';
-    debugPrint('Código escaneado: $codeValue');
+    final first = barcodes.first;
+    final String codeValue =
+        (first.displayValue ?? first.rawValue ?? '').trim();
+    if (codeValue.isEmpty) return;
+
+    final String formatLabel = _formatLabel(first.format);
+    debugPrint('Código leído ($formatLabel): $codeValue');
 
     setState(() {
       _scanState = 1;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
 
     setState(() {
       _scanState = 2;
     });
 
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute<void>(
-        builder: (context) => const TicketDetailScreen(
+        builder: (context) => TicketDetailScreen(
           storeName: 'Producto escaneado',
           date: 'Hoy',
           price: 'Revisar ticket',
+          scannedCode: codeValue,
+          barcodeFormatLabel: formatLabel,
           imageUrl:
               'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Decathlon_Logo.svg/1200px-Decathlon_Logo.svg.png',
         ),
       ),
     );
+  }
+
+  static String _formatLabel(BarcodeFormat format) {
+    return switch (format) {
+      BarcodeFormat.ean13 => 'EAN-13',
+      BarcodeFormat.ean8 => 'EAN-8',
+      BarcodeFormat.upcA => 'UPC-A',
+      BarcodeFormat.upcE => 'UPC-E',
+      BarcodeFormat.code128 => 'Code 128',
+      BarcodeFormat.code39 => 'Code 39',
+      BarcodeFormat.code93 => 'Code 93',
+      BarcodeFormat.codabar => 'Codabar',
+      BarcodeFormat.itf => 'ITF',
+      BarcodeFormat.qrCode => 'Código QR',
+      BarcodeFormat.dataMatrix => 'Data Matrix',
+      BarcodeFormat.pdf417 => 'PDF417',
+      BarcodeFormat.aztec => 'Aztec',
+      BarcodeFormat.unknown => 'Desconocido',
+      BarcodeFormat.all => 'Varios',
+    };
   }
 
   @override
@@ -116,6 +156,22 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
                   ? MobileScanner(
                       controller: _controller,
                       onDetect: _onDetect,
+                      errorBuilder: (context, error, child) {
+                        return ColoredBox(
+                          color: Colors.black87,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(
+                                error.errorDetails?.message ??
+                                    'No se pudo usar la cámara. Revisa permisos y vuelve a intentarlo.',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     )
                   : Container(color: Colors.black54),
             ),
@@ -136,7 +192,7 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Text(
         _scanState == 0
-            ? 'Apunta al código QR o de barras del ticket'
+            ? 'Apunta el código de barras o el QR del ticket'
             : '¡Código detectado! Procesando...',
         textAlign: TextAlign.center,
         style: const TextStyle(color: Colors.white70, fontSize: 16),

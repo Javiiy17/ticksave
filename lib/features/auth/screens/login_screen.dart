@@ -175,18 +175,9 @@ class _LoginScreenState extends State<LoginScreen> {
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              hintText: 'tu@gmail.com',
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+            decoration: const InputDecoration(
+              hintText: 'tu@email.com',
+              prefixIcon: Icon(Icons.alternate_email),
             ),
           ),
           const SizedBox(height: 16),
@@ -201,18 +192,9 @@ class _LoginScreenState extends State<LoginScreen> {
           TextField(
             controller: _passwordController,
             obscureText: true,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: '••••••••',
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              prefixIcon: Icon(Icons.lock_outline),
             ),
           ),
           const SizedBox(height: 30),
@@ -273,12 +255,12 @@ class _LoginScreenState extends State<LoginScreen> {
           textAlign: TextAlign.center,
           text: TextSpan(
             text: '¿No tienes cuenta? ',
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
             children: [
               TextSpan(
                 text: 'Regístrate',
                 style: TextStyle(
-                  color: Theme.of(context).primaryColor,
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),

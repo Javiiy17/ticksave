@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import 'core/settings/app_settings.dart';
+import 'core/settings/app_settings_scope.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'firebase_options.dart';
@@ -13,20 +16,39 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(TickSaveApp(settings: AppSettingsController()));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class TickSaveApp extends StatelessWidget {
+  const TickSaveApp({super.key, required this.settings});
+
+  final AppSettingsController settings;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TickSave',
-      debugShowCheckedModeBanner: false,
-      // Extraemos el tema a un archivo separado para mantener `main.dart` sencillo.
-      theme: appTheme,
-      home: const LoginScreen(),
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) {
+        return AppSettingsScope(
+          notifier: settings,
+          child: MaterialApp(
+            title: 'TickSave',
+            debugShowCheckedModeBanner: false,
+            theme: appTheme,
+            locale: settings.locale,
+            supportedLocales: const [
+              Locale('es'),
+              Locale('en'),
+            ],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: const LoginScreen(),
+          ),
+        );
+      },
     );
   }
 }
