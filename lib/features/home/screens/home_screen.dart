@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../tickets/models/ticket.dart';
 import '../../tickets/screens/scan_ticket_screen.dart';
+import '../../tickets/screens/barcode_scanner_screen.dart';
 import '../../tickets/screens/edit_store_image_screen.dart';
 import '../../tickets/services/ticket_service.dart';
 import '../../tickets/widgets/ticket_store_card.dart';
@@ -41,11 +42,52 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _goToScanScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (context) => const ScanTicketScreen(),
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Elige cómo escanear',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: const Icon(Icons.document_scanner, color: Color(0xFFE91E63)),
+                  title: const Text('Escanear Ticket (OCR)'),
+                  subtitle: const Text('Toma una foto al comercio y fecha'),
+                  onTap: () {
+                    Navigator.pop(context); // Cerrar Modal
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ScanTicketScreen()),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.qr_code_scanner, color: Color(0xFFE91E63)),
+                  title: const Text('Escanear Código (QR / Barras)'),
+                  subtitle: const Text('Detecta códigos rápidos sobre la marcha'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
