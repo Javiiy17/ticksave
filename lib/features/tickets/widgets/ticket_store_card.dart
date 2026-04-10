@@ -3,12 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/ticket.dart';
 import '../screens/ticket_detail_screen.dart';
 
-/// Tarjeta que resume los tickets de una tienda.
-///
-/// - Muestra imagen de cabecera.
-/// - Nombre del comercio y número de tickets.
-/// - Lista horizontal de importes y fechas.
-/// - Al pulsar abre el detalle de un ticket.
+/// Tarjeta limpia y premium para mostrar un Ticket individual.
 class TicketStoreCard extends StatelessWidget {
   const TicketStoreCard({
     super.key,
@@ -17,23 +12,18 @@ class TicketStoreCard extends StatelessWidget {
   });
 
   final Ticket ticket;
-
-  /// Acción que permite editar la imagen de la tienda desde la pantalla padre.
   final VoidCallback onEditPressed;
 
   @override
   Widget build(BuildContext context) {
+    final bool expiring = ticket.isExpiringSoon;
+    
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute<void>(
-            builder: (context) => TicketDetailScreen(
-              storeName: ticket.storeName,
-              date: ticket.dates.isNotEmpty ? ticket.dates.first : 'N/A',
-              price: ticket.prices.isNotEmpty ? ticket.prices.first : '0 €',
-              imageUrl: ticket.imageUrl,
-            ),
+            builder: (context) => TicketDetailScreen(ticket: ticket),
           ),
         );
       },
@@ -41,18 +31,19 @@ class TicketStoreCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+          border: expiring ? Border.all(color: Colors.redAccent, width: 2) : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
+              color: expiring ? Colors.redAccent.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
           children: [
             _buildHeaderImage(context),
-            _buildTicketChips(context),
+            _buildTicketInfoRow(context, expiring),
           ],
         ),
       ),
@@ -90,26 +81,14 @@ class TicketStoreCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    ticket.storeName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
-                    ),
-                  ),
-                  Text(
-                    '${ticket.ticketCount} tickets',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              Text(
+                ticket.storeName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
+                ),
               ),
               GestureDetector(
                 onTap: onEditPressed,
@@ -133,49 +112,69 @@ class TicketStoreCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTicketChips(BuildContext context) {
+  Widget _buildTicketInfoRow(BuildContext context, bool expiring) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: SizedBox(
-        height: 70,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: ticket.prices.length,
-          separatorBuilder: (context, index) => const SizedBox(width: 12),
-          itemBuilder: (context, index) {
-            return Container(
-              width: 120,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8F9FA),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    ticket.prices[index],
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      ticket.price,
+                      style: TextStyle(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
+                    const SizedBox(height: 4),
+                    Text(
+                      ticket.formattedDate,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (expiring)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: const [
+                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 16),
+                  SizedBox(width: 6),
                   Text(
-                    ticket.dates[index],
+                    'Caduca < 30 días',
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+        ],
       ),
     );
   }

@@ -17,8 +17,17 @@ dependencies:
   firebase_core: ^4.5.0
   # Autenticación de usuarios (email/contraseña, Google, etc.)
   firebase_auth: ^6.2.0
+  google_sign_in: any
   # Base de datos Cloud Firestore para guardar tickets y alertas
   cloud_firestore: ^6.1.3
+  # Storage para guardar las imagenes de los tickets
+  firebase_storage: any
+  # Camara, OCR y Fechas
+  image_picker: any
+  flutter_image_compress: any
+  google_mlkit_text_recognition: any
+  intl: any
+  path_provider: any
 
 dev_dependencies:
   flutter_test:

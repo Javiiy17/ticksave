@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import '../../tickets/models/ticket.dart';
 import '../../tickets/screens/scan_ticket_screen.dart';
 import '../../tickets/screens/edit_store_image_screen.dart';
+import '../../tickets/services/ticket_service.dart';
 import '../../tickets/widgets/ticket_store_card.dart';
 import '../widgets/header_icon.dart';
 
-/// Pantalla principal que muestra el listado de tickets guardados.
-///
-/// Para este MVP los datos están en memoria (lista local [tickets]).
-/// Más adelante esta pantalla se conectará a un servicio que lea
-/// tickets desde Firebase u otra fuente de datos.
+/// Pantalla principal que muestra el listado de tickets guardados desde Firebase.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -19,39 +16,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Lista de tickets simulada para la demo inicial.
-  ///
-  /// Aquí podríamos cargar datos reales desde una base de datos.
-  final List<Ticket> tickets = [
-    Ticket(
-      storeName: 'Aldi',
-      ticketCount: 2,
-      imageUrl:
-          'https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=1000&auto=format&fit=crop',
-      prices: ['22,50 €', '18,90 €'],
-      dates: ['15/01/2026', '12/01/2026'],
-    ),
-    Ticket(
-      storeName: 'Carrefour',
-      ticketCount: 3,
-      imageUrl:
-          'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?q=80&w=1000&auto=format&fit=crop',
-      prices: ['89,90 €', '34,20 €', '156,75 €'],
-      dates: ['28/01/2026', '25/01/2026', '20/01/2026'],
-    ),
-    Ticket(
-      storeName: 'MediaMarkt',
-      ticketCount: 1,
-      imageUrl:
-          'https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1000&auto=format&fit=crop',
-      prices: ['599,00 €'],
-      dates: ['10/02/2026'],
-    ),
-  ];
+  final TicketService _ticketService = TicketService();
+  String _searchQuery = "";
 
-  Future<void> _openEditStoreImage(int index) async {
-    final current = tickets[index];
-
+  void _openEditStoreImage(Ticket current) async {
     final newUrl = await Navigator.push<String?>(
       context,
       MaterialPageRoute<String?>(
@@ -62,13 +30,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (newUrl == null || newUrl.isEmpty) {
-      return;
-    }
+    if (newUrl == null || newUrl.isEmpty) return;
 
-    setState(() {
-      tickets[index].imageUrl = newUrl;
-    });
+    current.imageUrl = newUrl;
+    await _ticketService.updateTicket(current);
   }
 
   void _goToScanScreen() {
@@ -83,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).primaryColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -96,52 +61,63 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Franja superior azul con título y contador de tickets.
+  /// Franja superior con título, buscador y opciones.
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Mis Tickets',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${tickets.length} tickets guardados',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
           Row(
-            children: const [
-              HeaderIcon(icon: Icons.dark_mode_outlined),
-              SizedBox(width: 12),
-              HeaderIcon(icon: Icons.confirmation_number_outlined),
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mis Tickets',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: const [
+                  HeaderIcon(icon: Icons.settings_outlined),
+                  SizedBox(width: 12),
+                  HeaderIcon(icon: Icons.receipt_long_rounded),
+                ],
+              ),
             ],
           ),
+          const SizedBox(height: 20),
+          // Buscador en tiempo real
+          TextField(
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Buscar comercio...',
+              prefixIcon: const Icon(Icons.search, color: Colors.white54),
+            ),
+            onChanged: (val) {
+              setState(() {
+                _searchQuery = val.toLowerCase();
+              });
+            },
+          )
         ],
       ),
     );
   }
 
-  /// Contenedor blanco con la lista de tickets y el botón "Escanear Ticket".
+  /// Contenedor blanco con la lista de tickets que usa StreamBuilder
   Widget _buildTicketList(BuildContext context) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        color: Color(0xFFF5F7FA),
+        color: Color(0xFFF5F7FA), // Light theme underneath / could change for dark mode
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
@@ -149,14 +125,48 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Stack(
         children: [
-          ListView.separated(
-            padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
-            itemCount: tickets.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 20),
-            itemBuilder: (context, index) {
-              return TicketStoreCard(
-                ticket: tickets[index],
-                onEditPressed: () => _openEditStoreImage(index),
+          StreamBuilder<List<Ticket>>(
+            stream: _ticketService.getUserTickets(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Ocurrió un error al cargar: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+
+              final tickets = snapshot.data ?? [];
+              
+              // Filtrado local en tiempo real por búsqueda
+              final filteredTickets = tickets.where((t) {
+                return t.storeName.toLowerCase().contains(_searchQuery) ||
+                       t.categoria.toLowerCase().contains(_searchQuery);
+              }).toList();
+
+              if (filteredTickets.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No se encontraron tickets.',
+                    style: TextStyle(color: Colors.black54, fontSize: 16),
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
+                itemCount: filteredTickets.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 20),
+                itemBuilder: (context, index) {
+                  return TicketStoreCard(
+                    ticket: filteredTickets[index],
+                    onEditPressed: () => _openEditStoreImage(filteredTickets[index]),
+                  );
+                },
               );
             },
           ),
@@ -166,20 +176,21 @@ class _HomeScreenState extends State<HomeScreen> {
             right: 20,
             child: ElevatedButton.icon(
               onPressed: _goToScanScreen,
-              icon: const Icon(Icons.camera_alt_outlined),
-              label: const Text('Escanear Ticket'),
+              icon: const Icon(Icons.camera_alt_rounded),
+              label: const Text('ESCANEAR TICKET'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1877F2),
+                backgroundColor: const Color(0xFFE91E63), // Pink Gradient color emulation
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(25),
                 ),
                 elevation: 4,
-                shadowColor: const Color(0xFF1877F2).withValues(alpha: 0.4),
+                shadowColor: const Color(0xFFE91E63).withValues(alpha: 0.4),
                 textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
             ),
@@ -189,4 +200,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-

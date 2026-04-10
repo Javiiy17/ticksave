@@ -1,15 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Servicio de autenticación.
-///
-/// La idea de un "service" es separar la lógica (Firebase) de la UI (pantallas).
-/// Así las pantallas quedan más limpias y, si mañana cambias Firebase por otra
-/// solución, solo tocarías esta capa.
 class AuthService {
-  AuthService({FirebaseAuth? firebaseAuth})
-      : _auth = firebaseAuth ?? FirebaseAuth.instance;
+  AuthService({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn})
+      : _auth = firebaseAuth ?? FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
 
   /// Devuelve el usuario actual si hay sesión iniciada.
   User? get currentUser => _auth.currentUser;
@@ -36,8 +35,29 @@ class AuthService {
     );
   }
 
+  /// Inicia sesión con Google.
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null; // Cancelado
+      
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      
+      return await _auth.signInWithCredential(credential);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Cierra la sesión.
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
+    return _auth.signOut();
+  }
 }
 
 /// Traduce errores comunes de FirebaseAuth a mensajes entendibles para el usuario.

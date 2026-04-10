@@ -5,10 +5,6 @@ import '../services/auth_service.dart';
 import 'register_screen.dart';
 
 /// Pantalla de inicio de sesión.
-///
-/// De momento la lógica de autenticación es de demostración:
-/// al pulsar "Entrar" navegamos directamente a `HomeScreen`.
-/// Más adelante aquí conectaremos Firebase Auth.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -30,15 +26,30 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message, style: const TextStyle(color: Colors.white))),
+          ],
+        ),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   /// Inicia sesión con Firebase Auth usando email/contraseña.
   Future<void> _signIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rellena email y contraseña.')),
-      );
+      _showErrorSnackBar('Rellena email y contraseña.');
       return;
     }
 
@@ -55,9 +66,32 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(friendlyAuthError(e))),
+      _showErrorSnackBar(friendlyAuthError(e));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// Inicia sesión con Google.
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final cred = await _authService.signInWithGoogle(); 
+      if (!mounted) return;
+      if (cred == null) {
+        setState(() => _isLoading = false);
+        return; // User canceled
+      }
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => const HomeScreen(),
+        ),
       );
+    } catch (e) {
+      if (!mounted) return;
+      _showErrorSnackBar('Error con Google Sign-In: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -75,19 +109,31 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Usamos el color de fondo global oscuro definido en el tema.
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildHeader(context),
-                const SizedBox(height: 30),
-                _buildLoginCard(context),
-              ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).scaffoldBackgroundColor,
+              const Color(0xFFE91E63).withValues(alpha: 0.1),
+              const Color(0xFF9C27B0).withValues(alpha: 0.05),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildHeader(context),
+                  const SizedBox(height: 40),
+                  _buildLoginCard(context),
+                ],
+              ),
             ),
           ),
         ),
@@ -95,195 +141,221 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// Cabecera con icono y título de la app.
+  /// Cabecera con icono estilizado y título premium de la app.
   Widget _buildHeader(BuildContext context) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE91E63), Color(0xFF9C27B0)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFE91E63).withValues(alpha: 0.4),
+                blurRadius: 20,
+                spreadRadius: 2,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-          child: Icon(
-            Icons.confirmation_number_outlined,
-            size: 40,
-            color: Theme.of(context).primaryColor,
+          child: const Icon(
+            Icons.receipt_long_rounded,
+            size: 45,
+            color: Colors.white,
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         const Text(
           'TickSave',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Guarda tus tickets y garantías :)',
+        Text(
+          'Protege tus garantías en la nube',
           style: TextStyle(
-            color: Colors.white70,
+            color: Colors.white.withValues(alpha: 0.6),
             fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
     );
   }
 
-  /// Tarjeta blanca con el formulario de login y acciones.
+  /// Tarjeta Glassmorphism con el formulario de login y acciones.
   Widget _buildLoginCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1020),
-        borderRadius: const BorderRadius.all(Radius.circular(24)),
+        color: const Color(0xFF140A26).withValues(alpha: 0.8),
+        borderRadius: const BorderRadius.all(Radius.circular(30)),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 30,
             offset: const Offset(0, 20),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(30),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Iniciar sesión',
+            'Bienvenido de nuevo',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 30),
-          Text(
-            'Email',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-          ),
-          const SizedBox(height: 8),
+          _buildTextFieldLabel('Email'),
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(
-              hintText: 'tu@gmail.com',
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'tu@correo.com',
+              prefixIcon: Icon(Icons.email_outlined, color: Colors.white54),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Contraseña',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.9),
-            ),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
+          _buildTextFieldLabel('Contraseña'),
           TextField(
             controller: _passwordController,
             obscureText: true,
-            decoration: InputDecoration(
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
               hintText: '••••••••',
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              prefixIcon: Icon(Icons.lock_outline_rounded, color: Colors.white54),
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 35),
           SizedBox(
             width: double.infinity,
-            height: 50,
+            height: 55,
             child: ElevatedButton(
               onPressed: _isLoading ? null : _signIn,
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Entrar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent, // Background nulo para el degradado bajo él
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE91E63), Color(0xFF9C27B0)],
+                  ),
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Container(
+                  alignment: Alignment.center,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'ENTRAR',
+                          style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 20),
           _buildGoogleButton(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 30),
           _buildRegisterLink(context),
         ],
       ),
     );
   }
 
-  /// Botón de acceso con Google (lógica pendiente de implementar con Firebase).
-  Widget _buildGoogleButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: OutlinedButton.icon(
-        onPressed: () {
-          // Aquí se conectará el login con Google usando Firebase Auth.
-        },
-        style: OutlinedButton.styleFrom(),
-        icon: Image.network(
-          'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/240px-Google_%22G%22_logo.svg.png',
-          height: 24,
-          width: 24,
-          errorBuilder: (context, error, stackTrace) =>
-              const Icon(Icons.public, color: Colors.blue),
-        ),
-        label: const Text(
-          'Continuar con Google',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+  Widget _buildTextFieldLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white.withValues(alpha: 0.8),
+          fontSize: 14,
         ),
       ),
     );
   }
 
-  /// Enlace inferior para ir a la pantalla de registro.
+  /// Botón de acceso con Google prémium.
+  Widget _buildGoogleButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: OutlinedButton.icon(
+        onPressed: _isLoading ? null : _signInWithGoogle,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white.withValues(alpha: 0.02),
+        ),
+        icon: Image.network(
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/240px-Google_%22G%22_logo.svg.png',
+          height: 24,
+          width: 24,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.public, color: Colors.white),
+        ),
+        label: const Text(
+          'Continuar con Google',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  /// Enlace inferior para ir a la pantalla de registro de alto impacto.
   Widget _buildRegisterLink(BuildContext context) {
     return Center(
       child: TextButton(
         onPressed: _goToRegister,
-        child: RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
-            text: '¿No tienes cuenta? ',
-            style: TextStyle(color: Colors.grey[600]),
+        style: TextButton.styleFrom(padding: const EdgeInsets.all(16)),
+        child: const Text.rich(
+          TextSpan(
+            text: '¿NUEVO POR AQUÍ?\n',
+            style: TextStyle(
+              color: Colors.white54,
+              fontSize: 13,
+              letterSpacing: 1.2,
+              height: 1.5,
+            ),
             children: [
               TextSpan(
-                text: 'Regístrate',
+                text: '¡REGÍSTRATE!',
                 style: TextStyle(
-                  color: Theme.of(context).primaryColor,
-                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFFF4081),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  letterSpacing: 2.0,
                 ),
               ),
             ],
           ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
