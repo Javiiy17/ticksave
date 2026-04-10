@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/raster_image_url.dart';
 import '../models/ticket.dart';
 import '../screens/ticket_detail_screen.dart';
 
@@ -51,6 +52,7 @@ class TicketStoreCard extends StatelessWidget {
   }
 
   Widget _buildHeaderImage(BuildContext context) {
+    final safeUrl = rasterHttpUrlOrPlaceholder(ticket.imageUrl);
     return Stack(
       children: [
         ClipRRect(
@@ -69,7 +71,7 @@ class TicketStoreCard extends StatelessWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: NetworkImage(ticket.imageUrl),
+                  image: NetworkImage(safeUrl),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -90,18 +92,19 @@ class TicketStoreCard extends StatelessWidget {
                   shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
                 ),
               ),
-              GestureDetector(
-                onTap: onEditPressed,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    size: 20,
-                    color: Colors.grey,
+              Material(
+                color: Colors.white,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onEditPressed,
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 20,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               ),

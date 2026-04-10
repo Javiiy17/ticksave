@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/raster_image_url.dart';
+
 /// Pantalla que permite personalizar la imagen asociada a una tienda.
 ///
 /// El flujo es:
@@ -29,7 +31,6 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
   final List<String> _suggestions = [
     'https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=300&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?q=80&w=300&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1580913428706-c311ab44351d?q=80&w=300&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1534723452862-4c874018d66d?q=80&w=300&auto=format&fit=crop',
   ];
 
@@ -37,7 +38,7 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
   void initState() {
     super.initState();
     _urlController = TextEditingController(text: widget.currentImageUrl);
-    _previewImageUrl = widget.currentImageUrl;
+    _previewImageUrl = widget.currentImageUrl.trim();
   }
 
   @override
@@ -54,8 +55,9 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
   }
 
   void _saveImage() {
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context, _urlController.text);
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(content: Text('Imagen actualizada correctamente')),
     );
   }
@@ -106,12 +108,16 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
         children: [
           Text(
             widget.storeName,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Personaliza la imagen de este comercio',
-            style: TextStyle(color: Colors.grey[600]),
+            style: const TextStyle(color: Colors.black),
           ),
         ],
       ),
@@ -126,7 +132,7 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: Image.network(
-              _previewImageUrl,
+              rasterHttpUrlOrPlaceholder(_previewImageUrl),
               height: 180,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -143,7 +149,7 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
             padding: const EdgeInsets.all(12),
             child: Text(
               'Vista previa',
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              style: const TextStyle(color: Colors.black, fontSize: 12),
             ),
           ),
         ],
@@ -188,7 +194,7 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
           const SizedBox(height: 8),
           Text(
             'Pega la URL de una imagen del establecimiento o marca',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            style: const TextStyle(color: Colors.black, fontSize: 12),
           ),
         ],
       ),
@@ -208,7 +214,7 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
           const SizedBox(height: 16),
           Text(
             'Selecciona una de estas imágenes:',
-            style: TextStyle(color: Colors.grey[700]),
+            style: const TextStyle(color: Colors.black),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -235,10 +241,14 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(9),
                       child: Image.network(
-                        url,
+                        rasterHttpUrlOrPlaceholder(url),
                         width: 90,
                         height: 90,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => ColoredBox(
+                          color: Colors.grey[300]!,
+                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                        ),
                       ),
                     ),
                   ),
@@ -361,7 +371,11 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
         const SizedBox(width: 12),
         Text(
           title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
         ),
       ],
     );
