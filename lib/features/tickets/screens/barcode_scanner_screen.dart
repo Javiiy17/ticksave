@@ -101,55 +101,53 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> with Single
             painter: OverlayPainter(mode: _currentMode),
           ),
           // Línea animada y bordes
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final double width = constraints.maxWidth;
-                final double height = constraints.maxHeight;
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double width = constraints.maxWidth;
+              final double height = constraints.maxHeight;
 
-                final isBarcode = _currentMode == ScanMode.barcode;
-                final double rectWidth = isBarcode ? width * 0.85 : width * 0.7;
-                final double rectHeight = isBarcode ? height * 0.2 : width * 0.7;
+              final isBarcode = _currentMode == ScanMode.barcode;
+              final double rectWidth = isBarcode ? width * 0.85 : width * 0.7;
+              final double rectHeight = isBarcode ? height * 0.2 : width * 0.7;
 
-                return Center(
-                  child: SizedBox(
-                    width: rectWidth,
-                    height: rectHeight,
-                    child: Stack(
-                      children: [
-                        // Cuatro esquinas decorativas
-                        _buildCorners(rectWidth, rectHeight, _isSuccess ? Colors.greenAccent : Colors.white),
-                        // Línea escáner que sube y baja
-                        AnimatedBuilder(
-                          animation: _animation,
-                          builder: (context, child) {
-                            return Positioned(
-                              top: _animation.value * (rectHeight - 4),
-                              left: 0,
-                              right: 0,
-                              child: Container(
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: _isSuccess ? Colors.greenAccent : Colors.red,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: (_isSuccess ? Colors.greenAccent : Colors.red).withValues(alpha: 0.6),
-                                      blurRadius: 8,
-                                      spreadRadius: 2,
-                                    )
-                                  ],
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
+              return Center(
+                child: SizedBox(
+                  width: rectWidth,
+                  height: rectHeight,
+                  child: Stack(
+                    children: [
+                      // Cuatro esquinas decorativas
+                      _buildCorners(rectWidth, rectHeight, _isSuccess ? Colors.greenAccent : Colors.white),
+                      // Línea escáner que sube y baja
+                      AnimatedBuilder(
+                        animation: _animation,
+                        builder: (context, child) {
+                          return Positioned(
+                            top: _animation.value * (rectHeight - 4),
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: _isSuccess ? Colors.greenAccent : Colors.red,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (_isSuccess ? Colors.greenAccent : Colors.red).withValues(alpha: 0.6),
+                                    blurRadius: 8,
+                                    spreadRadius: 2,
+                                  )
+                                ],
+                                borderRadius: BorderRadius.circular(5),
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
           // Botones inferiores para alternar
           Positioned(
