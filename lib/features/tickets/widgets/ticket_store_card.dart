@@ -5,6 +5,7 @@ import '../models/ticket.dart';
 import '../screens/ticket_detail_screen.dart';
 
 /// Tarjeta limpia y premium para mostrar un Ticket individual.
+/// @author Luis Bermeo
 class TicketStoreCard extends StatelessWidget {
   const TicketStoreCard({
     super.key,

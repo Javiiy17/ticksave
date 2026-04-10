@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_settings.dart';
 
 /// Expone [AppSettingsController] al árbol bajo [MaterialApp].
+/// @author Javier Abellán
 class AppSettingsScope extends InheritedNotifier<AppSettingsController> {
   const AppSettingsScope({
     super.key,

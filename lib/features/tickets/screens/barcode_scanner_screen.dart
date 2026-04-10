@@ -3,8 +3,13 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'edit_ticket_screen.dart';
 
+/// Define los modos de escaneo soportados por la pantalla.
+/// @author Javier Abellán
 enum ScanMode { barcode, qr }
 
+/// Pantalla encargada de inicializar la cámara y analizar en tiempo real
+/// los códigos de barras y códigos QR utilizando la librería mobile_scanner.
+/// @author Javier Abellán
 class BarcodeScannerScreen extends StatefulWidget {
   const BarcodeScannerScreen({super.key});
 
@@ -46,6 +51,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> with Single
     super.dispose();
   }
 
+  /// Procesa el resultado de captura del escáner en tiempo real.
+  /// Cuando detecta un código válido, detiene la animación y navega a la pantalla de edición.
+  /// 
+  /// [capture] Contiene la lista de códigos detectados por la cámara.
+  /// @author Javier Abellán
   Future<void> _handleBarcode(BarcodeCapture capture) async {
     if (_isProcessing || capture.barcodes.isEmpty) return;
 
@@ -258,6 +268,9 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> with Single
   }
 }
 
+/// Pintor personalizado para dibujar la capa semitransparente oscura
+/// junto con la zona de recorte (agujero transparente) según el modo de escaneo.
+/// @author Javier Abellán
 class OverlayPainter extends CustomPainter {
   final ScanMode mode;
 

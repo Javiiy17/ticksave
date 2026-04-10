@@ -5,6 +5,7 @@ import '../../../core/settings/app_currency.dart';
 import '../../../core/settings/app_settings_scope.dart';
 
 /// Ajustes básicos: idioma y divisa (símbolo mostrado).
+/// @author Luis Bermeo
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 

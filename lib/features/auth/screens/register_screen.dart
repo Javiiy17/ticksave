@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 
-/// Pantalla de registro de usuario.
+/// Pantalla de registro de usuario en interfaz de usuario.
 ///
 /// En esta versión inicial solo definimos el formulario y la navegación.
-/// La conexión real con un backend (por ejemplo Firebase Auth) se añadirá después.
+/// @author Luis Bermeo
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 

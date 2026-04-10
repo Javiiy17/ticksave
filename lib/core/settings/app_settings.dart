@@ -6,6 +6,7 @@ import 'app_currency.dart';
 ///
 /// Notifica a los oyentes al cambiar; [TickSaveApp] envuelve [MaterialApp] en un
 /// [ListenableBuilder] para aplicar [locale] y reconstruir la UI.
+/// @author Javier Abellán
 class AppSettingsController extends ChangeNotifier {
   AppSettingsController({
     Locale locale = const Locale('es'),

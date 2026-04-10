@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 ///
 /// Se extrae a un widget propio para reutilizarlo y mantener
 /// `HomeScreen` más legible.
+/// @author Luis Bermeo
 class HeaderIcon extends StatelessWidget {
   const HeaderIcon({super.key, required this.icon, this.onTap});
 

@@ -7,6 +7,7 @@ import '../../../core/settings/app_settings_scope.dart';
 import '../../../core/utils/price_currency.dart';
 
 /// Datos que devuelve [EditTicketScreen] al guardar cuando se usa desde el detalle.
+/// @author Luis Bermeo
 class EditTicketResult {
   const EditTicketResult({
     required this.storeName,
@@ -19,6 +20,9 @@ class EditTicketResult {
   final String price;
 }
 
+/// Pantalla para crear un ticket desde cero o editar uno existente.
+/// Comparte los parámetros para ser compatible con OCR y otros flujos.
+/// @author Luis Bermeo
 class EditTicketScreen extends StatefulWidget {
   final Ticket? existingTicket;
   final String? scannedStoreName;

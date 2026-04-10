@@ -1,4 +1,5 @@
-/// Utilidades para quitar / aplicar símbolos de divisa en textos de importe.
+/// Utilidades para quitar / aplicar símbolos de divisa en textos de importe de la interfaz.
+/// @author Luis Bermeo
 class PriceCurrency {
   PriceCurrency._();
 

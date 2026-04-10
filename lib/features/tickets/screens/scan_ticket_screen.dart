@@ -7,6 +7,7 @@ import '../services/ticket_service.dart';
 import 'edit_ticket_screen.dart';
 
 /// Pantalla encargada de sacar foto al ticket e intentar extraer datos con OCR.
+/// @author Luis Bermeo
 class ScanTicketScreen extends StatefulWidget {
   const ScanTicketScreen({super.key});
 

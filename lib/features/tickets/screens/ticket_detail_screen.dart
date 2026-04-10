@@ -11,6 +11,7 @@ import 'edit_ticket_screen.dart';
 /// Pantalla que te muestra el detalle del ticket.
 ///
 /// Le pasamos el [Ticket] desde la lista para enseñarlo y poder editarlo.
+/// @author Luis Bermeo
 class TicketDetailScreen extends StatefulWidget {
   const TicketDetailScreen({
     super.key,
