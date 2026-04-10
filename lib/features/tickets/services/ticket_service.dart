@@ -14,7 +14,7 @@ class TicketService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Stream de tickets de un usuario
+  /// Devuelve los tickets del usuario logueado en tiempo real =O
   Stream<List<Ticket>> getUserTickets() {
     final user = _auth.currentUser;
     if (user == null) return Stream.value([]);
@@ -30,12 +30,12 @@ class TicketService {
     });
   }
 
-  /// Agrega un nuevo ticket
+  /// Sube un ticket nuevo a la bdd de Firebase
   Future<void> addTicket(Ticket ticket) async {
     final user = _auth.currentUser;
     if (user == null) return;
     
-    ticket.userId = user.uid; // Safety: force link to current user
+    ticket.userId = user.uid; // Por si acaso, forzamos que el ticket se asocie al ID del usuario
     await _firestore
         .collection('users')
         .doc(user.uid)
@@ -43,7 +43,7 @@ class TicketService {
         .add(ticket.toMap());
   }
 
-  /// Actualiza un ticket existente
+  /// Sobreescribe los datos de un ticket
   Future<void> updateTicket(Ticket ticket) async {
     final user = _auth.currentUser;
     if (user == null || ticket.id == null) return;
@@ -56,7 +56,7 @@ class TicketService {
         .update(ticket.toMap());
   }
   
-  /// Elimina un ticket
+  /// Se carga el ticket y lo borra
   Future<void> deleteTicket(String ticketId) async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -69,13 +69,13 @@ class TicketService {
         .delete();
   }
 
-  /// Comprime una imagen y la sube a Firebase Storage. Devuelve la URL de descarga.
+  /// Comprimimos un pelín la foto antes de mandarla al Storage para que no tarde mil años
   Future<String?> uploadTicketImage(File imageFile) async {
     try {
       final user = _auth.currentUser;
       if (user == null) return null;
 
-      // Comprimir imagen
+      // A comprimir toca
       final dir = await getTemporaryDirectory();
       final targetPath = '${dir.absolute.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.jpg';
       
@@ -88,7 +88,7 @@ class TicketService {
 
       if (compressedFile == null) return null;
 
-      // Subir a Storage
+      // A la nube con todo
       final fileName = 'tickets/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final ref = _storage.ref().child(fileName);
       
@@ -97,13 +97,14 @@ class TicketService {
       
       return downloadUrl;
     } catch (e) {
+      // Si esto falla lo ignoramos por no petar la app entera, pero malo jaja
       // ignore: avoid_print
       print('Error uploading image: $e');
       return null;
     }
   }
 
-  /// Procesa una imagen con ML Kit y extrae un texto tentativo (ej. Fecha y Comercio).
+  /// Usamos IA (ML Kit) para adivinar el texto de la foto y sacar fecha y tienda
   Future<Map<String, String>> extractTicketData(File imageFile) async {
     final inputImage = InputImage.fromFile(imageFile);
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
@@ -114,19 +115,19 @@ class TicketService {
       String possibleStore = "Desconocido";
       String possibleDate = "Hoy";
       
-      // Regex para buscar fechas (ej. 12/03/2026, 12-03-2026, 12/03/26)
+      // Patter loco de regex para fechas (12/03/2026, etc)
       RegExp datePattern =  RegExp(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b');
       
-      // La primera línea grande o bloque superior suele ser la tienda
+      // Normalmente lo primerito en el ticket arriba del todo es el nombre
       if (recognizedText.blocks.isNotEmpty) {
-        // Tomamos el primer bloque de texto no vacío como la tienda
+        // Cogemos el primer bloque de texto
         final firstBlock = recognizedText.blocks.first.text.replaceAll('\n', ' ').trim();
         if (firstBlock.isNotEmpty && firstBlock.length > 2) {
             possibleStore = firstBlock;
         }
       }
 
-      // Buscar si hay una fecha
+      // Pasamos a buscar la fecha a ver si hay suerte
       final String fullText = recognizedText.text;
       final match = datePattern.firstMatch(fullText);
       if (match != null) {

@@ -8,9 +8,9 @@ import '../services/ticket_service.dart';
 import 'alert_screen.dart';
 import 'edit_ticket_screen.dart';
 
-/// Muestra el detalle de un ticket concreto.
+/// Pantalla que te muestra el detalle del ticket.
 ///
-/// Puede enlazarse a un [Ticket] del listado para persistir ediciones en memoria.
+/// Le pasamos el [Ticket] desde la lista para enseñarlo y poder editarlo.
 class TicketDetailScreen extends StatefulWidget {
   const TicketDetailScreen({
     super.key,
@@ -23,16 +23,16 @@ class TicketDetailScreen extends StatefulWidget {
 
   final Ticket ticket;
 
-  /// Valor decodificado del QR o código de barras (si se llegó desde el escáner).
+  /// Valor que pillamos del código QR o de barras si vienes del escáner.
   final String? scannedCode;
 
-  /// Etiqueta legible del formato (p. ej. EAN-13, Code 128).
+  /// Tipo de código de barras (ej. EAN-13), por si hace falta.
   final String? barcodeFormatLabel;
 
-  /// Si no es null, las ediciones actualizan este modelo (MVP en memoria).
+  /// El ticket original que estamos tocando, para no liar los IDs.
   final Ticket? sourceTicket;
 
-  /// Índice en [Ticket.prices] / [Ticket.dates] que representa esta línea. (Compatibilidad con rama partner)
+  /// Por la parte de código que hizo Javi, nos guardamos el índice.
   final int sourceLineIndex;
 
   @override
@@ -94,14 +94,14 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       _price = result.price;
     });
 
-    // Actualizar el modelo original y persistirlo en Firestore
+    // Actualizamos el ticket local y lo mandamos a la nube
     final t = widget.sourceTicket ?? (widget.ticket.id != null ? widget.ticket : null);
     if (t != null) {
       t.storeName = _storeName;
       t.price = _price;
-      // Nota: Para simplificar, asumimos que purchaseDate se mantiene o se actualiza vía parseo si fuera necesario.
+      // Ojo: no estamos tocando la fecha aquí para no complicarlo mucho más
       
-      // Guardar en la base de datos de la nube
+      // Que no se nos olvide subir esto a Firebase
       await TicketService().updateTicket(t);
     }
   }
