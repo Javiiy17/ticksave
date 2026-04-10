@@ -4,6 +4,7 @@ import '../../../core/settings/app_settings_scope.dart';
 import '../../../core/utils/price_currency.dart';
 import '../../../core/utils/raster_image_url.dart';
 import '../models/ticket.dart';
+import '../services/ticket_service.dart';
 import 'alert_screen.dart';
 import 'edit_ticket_screen.dart';
 
@@ -93,12 +94,15 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       _price = result.price;
     });
 
-    // Actualizar el modelo original si se pasó uno
+    // Actualizar el modelo original y persistirlo en Firestore
     final t = widget.sourceTicket ?? (widget.ticket.id != null ? widget.ticket : null);
     if (t != null) {
       t.storeName = _storeName;
       t.price = _price;
       // Nota: Para simplificar, asumimos que purchaseDate se mantiene o se actualiza vía parseo si fuera necesario.
+      
+      // Guardar en la base de datos de la nube
+      await TicketService().updateTicket(t);
     }
   }
 

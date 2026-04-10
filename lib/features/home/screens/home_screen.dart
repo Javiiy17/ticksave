@@ -7,6 +7,8 @@ import '../../tickets/screens/edit_store_image_screen.dart';
 import '../../tickets/services/ticket_service.dart';
 import '../../tickets/widgets/ticket_store_card.dart';
 import '../../settings/screens/settings_screen.dart';
+import '../../auth/services/auth_service.dart';
+import '../../auth/screens/login_screen.dart';
 import '../widgets/header_icon.dart';
 
 /// Pantalla principal que muestra el listado de tickets guardados desde Firebase.
@@ -102,7 +104,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                   const SizedBox(width: 12),
-                  const HeaderIcon(icon: Icons.receipt_long_rounded),
+                  HeaderIcon(
+                    icon: Icons.logout,
+                    onTap: () async {
+                      await AuthService().signOut();
+                      if (!context.mounted) return;
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
+                      );
+                    },
+                  ),
                 ],
               ),
             ],
