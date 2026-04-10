@@ -57,9 +57,22 @@ class _AlertScreenState extends State<AlertScreen> {
   }
 
   void _saveAlert() {
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('¡Alerta guardada correctamente!')),
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF111827),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: const Text(
+          '¡Alerta guardada correctamente!',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 
@@ -108,14 +121,13 @@ class _AlertScreenState extends State<AlertScreen> {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Colors.black,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'Comprado el ${widget.purchaseDate}',
-              style: TextStyle(
-                color: Colors.grey[600],
-              ),
+              style: const TextStyle(color: Colors.black),
             ),
           ],
         ),
@@ -175,7 +187,11 @@ class _AlertScreenState extends State<AlertScreen> {
               SizedBox(width: 8),
               Text(
                 'Fecha de vencimiento',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.black,
+                ),
               ),
             ],
           ),
@@ -184,6 +200,7 @@ class _AlertScreenState extends State<AlertScreen> {
             controller: _dateController,
             readOnly: true,
             onTap: _pickDate,
+            style: const TextStyle(color: Color(0xFF111827)),
             decoration: InputDecoration(
               hintText: 'dd/mm/aaaa',
               filled: true,
@@ -227,19 +244,24 @@ class _AlertScreenState extends State<AlertScreen> {
               SizedBox(width: 8),
               Text(
                 'Días de aviso',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.black,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             'Recibirás una notificación con esta antelación.',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            style: const TextStyle(color: Colors.black, fontSize: 13),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _daysController,
             keyboardType: TextInputType.number,
+            style: const TextStyle(color: Color(0xFF111827)),
             onChanged: (value) {
               final parsed = int.tryParse(value);
               setState(() {
@@ -337,7 +359,7 @@ class _AlertScreenState extends State<AlertScreen> {
         child: Text(
           '$days días',
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black54,
+            color: isSelected ? Colors.white : const Color(0xFF111827),
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),

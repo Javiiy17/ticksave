@@ -21,7 +21,7 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
   bool _isProcessing = false;
   File? _imageFile;
 
-  /// Abre la cámara, toma la foto y la procesa con ML Kit
+  /// Abre la cámara, toma la foto y la procesa con ML Kit (OCR)
   Future<void> _takePhotoAndProcess() async {
     try {
       final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
@@ -32,7 +32,7 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
         _isProcessing = true;
       });
 
-      // Extraer datos con el OCR
+      // Extraer datos con el OCR del servicio
       final data = await _ticketService.extractTicketData(_imageFile!);
 
       if (!mounted) return;
@@ -49,11 +49,15 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
         ),
       );
     } catch (e) {
-      debugPrint('Error al capturar/procesar: $e');
+      debugPrint('Error al capturar/procesar OCR: $e');
       if (mounted) {
         setState(() => _isProcessing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Error al procesar el ticket'), backgroundColor: Colors.redAccent),
+           const SnackBar(
+             content: Text('Error al procesar el ticket. Prueba de nuevo.'), 
+             backgroundColor: Colors.redAccent,
+             behavior: SnackBarBehavior.floating,
+           ),
         );
       }
     }
@@ -82,9 +86,12 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
         ? null 
         : FloatingActionButton.extended(
             onPressed: _takePhotoAndProcess,
-            backgroundColor: const Color(0xFF1877F2),
+            backgroundColor: const Color(0xFFE91E63),
             icon: const Icon(Icons.camera_alt, color: Colors.white),
-            label: const Text('Tomar Foto', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            label: const Text(
+              'Tomar Foto', 
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.1)
+            ),
           ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
@@ -99,7 +106,7 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 40),
           child: Text(
-            'Pulsa "Tomar Foto" y apunta bien iluminado a tu ticket para extraer automáticamente el comercio y la fecha de compra.',
+            'Pulsa "Tomar Foto" y apunta bien iluminado a tu ticket para extraer automáticamente el comercio y la fecha de compra mediante IA.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white70, fontSize: 16),
           ),
@@ -121,13 +128,13 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
              ),
            ),
         const CircularProgressIndicator(
-          color: Color(0xFF1877F2),
+          color: Color(0xFFE91E63),
           strokeWidth: 4,
         ),
         const SizedBox(height: 20),
         const Text(
-          'Analizando texto del ticket con Inteligencia Artificial...',
-          style: TextStyle(color: Colors.white),
+          'Analizando ticket con Inteligencia Artificial...',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ],
     );
