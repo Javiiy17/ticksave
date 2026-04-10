@@ -8,6 +8,7 @@ import '../../../core/utils/raster_image_url.dart';
 /// - Se muestra la imagen actual y una vista previa.
 /// - El usuario puede pegar una URL o elegir una sugerencia.
 /// - Al guardar, devolvemos la URL seleccionada con `Navigator.pop`.
+/// @author Luis Bermeo
 class EditStoreImageScreen extends StatefulWidget {
   const EditStoreImageScreen({
     super.key,

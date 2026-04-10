@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 /// - **Modo oscuro profundo** como base (Dark Purple).
 /// - **Acento Rosa y Púrpura** para elementos interactivos.
 /// - Tarjetas y controles con **bordes ultra redondeados (25.0)** y estilo premium.
+/// @author Luis Bermeo
 final ThemeData appTheme = ThemeData(
   useMaterial3: true,
   brightness: Brightness.dark,

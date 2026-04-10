@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-/// Servicio de autenticación.
+/// Servicio de autenticación que maneja inicio de sesión (Google, Email)
+/// y el registro de usuarios en Firebase Auth.
+/// @author Javier Abellán
 class AuthService {
   AuthService({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn})
       : _auth = firebaseAuth ?? FirebaseAuth.instance,
@@ -63,6 +65,7 @@ class AuthService {
 /// Traduce errores comunes de FirebaseAuth a mensajes entendibles para el usuario.
 ///
 /// Nota: estos códigos pueden variar entre versiones, pero los más comunes se mantienen.
+/// @author Javier Abellán
 String friendlyAuthError(Object error) {
   if (error is! FirebaseAuthException) {
     return 'Ha ocurrido un error inesperado. Inténtalo de nuevo.';

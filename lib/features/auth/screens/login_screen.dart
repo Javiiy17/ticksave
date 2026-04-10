@@ -4,7 +4,9 @@ import '../../home/screens/home_screen.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 
-/// Pantalla de inicio de sesión.
+/// Pantalla de inicio de sesión de la aplicación que interactúa
+/// con los métodos visuales para autenticar vía Redes o Email.
+/// @author Luis Bermeo
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 

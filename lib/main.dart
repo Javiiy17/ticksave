@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 /// Punto de entrada de la aplicación.
 ///
 /// Aquí inicializamos Firebase antes de montar el árbol de widgets.
+/// @author Javier Abellán
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -19,6 +20,8 @@ Future<void> main() async {
   runApp(TickSaveApp(settings: AppSettingsController()));
 }
 
+/// Widget raíz de la aplicación que administra el flujo del estado y la configuración general.
+/// @author Javier Abellán
 class TickSaveApp extends StatelessWidget {
   const TickSaveApp({super.key, required this.settings});
 

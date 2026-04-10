@@ -1,7 +1,8 @@
 /// URLs seguras para [Image.network] / [NetworkImage] en Flutter.
 ///
 /// - Una cadena vacía dispara un `assert` en el framework.
-/// - Los SVG no se decodifican como imágenes ráster y suelen romper la carga.
+/// - Los SVG no se decodifican como imágenes ráster y suelen romper la carga visual.
+/// @author Luis Bermeo
 String rasterHttpUrlOrPlaceholder(String url) {
   const placeholder =
       'https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=1000&auto=format&fit=crop';

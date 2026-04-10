@@ -1,4 +1,5 @@
 /// Divisas disponibles en ajustes (solo símbolo de visualización; sin conversión de tipo de cambio).
+/// @author Luis Bermeo
 enum AppCurrency {
   eur,
   usd,

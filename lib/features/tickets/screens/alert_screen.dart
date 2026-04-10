@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 
 /// Pantalla para configurar una alerta de vencimiento de garantía.
 ///
-/// La idea es que el usuario elija:
-/// - La fecha de vencimiento de la garantía.
-/// - Cuántos días antes quiere recibir un aviso.
-/// Por ahora solo mostramos un `SnackBar` al guardar; más adelante
-/// se conectará con notificaciones reales y/o Firebase.
+/// La idea es que el usuario elija la fecha de vencimiento y los días previos.
+/// Actualmente controla la interfaz de configuración.
+/// @author Luis Bermeo
 class AlertScreen extends StatefulWidget {
   const AlertScreen({
     super.key,

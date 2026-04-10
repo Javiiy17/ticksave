@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../settings/app_settings_scope.dart';
 
 /// Cadenas mínimas según idioma (es / en) para inicio y ajustes.
+/// @author Luis Bermeo
 class AppStrings {
   AppStrings._(this._en);
 

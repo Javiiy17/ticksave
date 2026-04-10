@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-/// Modelo de un Ticket de compra individual.
+/// Modelo de datos que representa un Ticket de compra individual.
+/// Administra la conversión de datos y la lógica de fechas y garantías.
+/// @author Javier Abellán
 class Ticket {
   Ticket({
     this.id,

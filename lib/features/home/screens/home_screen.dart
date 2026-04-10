@@ -13,6 +13,8 @@ import '../../auth/screens/login_screen.dart';
 import '../widgets/header_icon.dart';
 
 /// Pantalla principal que muestra el listado de tickets guardados desde Firebase.
+/// Maneja la UI de búsqueda y el panel inferior.
+/// @author Luis Bermeo
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -41,6 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
     await _ticketService.updateTicket(current);
   }
 
+  /// Muestra un menú inferior (BottomSheet) para que el usuario elija
+  /// si desea escanear el ticket mediante OCR (foto) o escanear un
+  /// código de barras / QR de forma rápida.
+  /// @author Javier Abellán
   void _goToScanScreen() {
     showModalBottomSheet(
       context: context,

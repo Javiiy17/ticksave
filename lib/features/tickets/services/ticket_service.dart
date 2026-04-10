@@ -9,6 +9,9 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/ticket.dart';
 
+/// Servicio encargado de gestionar la lógica de base de datos en Firestore,
+/// subida de imágenes a Cloud Storage y el motor subyacente de análisis de texto.
+/// @author Javier Abellán
 class TicketService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
