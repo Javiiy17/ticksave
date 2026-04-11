@@ -4,9 +4,8 @@ import '../../../core/l10n/app_strings.dart';
 import '../../tickets/models/ticket.dart';
 import '../../tickets/screens/scan_ticket_screen.dart';
 import '../../tickets/screens/barcode_scanner_screen.dart';
-import '../../tickets/screens/edit_store_image_screen.dart';
 import '../../tickets/services/ticket_service.dart';
-import '../../tickets/widgets/ticket_store_card.dart';
+import '../../tickets/widgets/store_group_card.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../auth/services/auth_service.dart';
 import '../../auth/screens/login_screen.dart';
@@ -26,23 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final TicketService _ticketService = TicketService();
   String _searchQuery = "";
 
-  void _openEditStoreImage(Ticket current) async {
-    final newUrl = await Navigator.push<String?>(
-      context,
-      MaterialPageRoute<String?>(
-        builder: (context) => EditStoreImageScreen(
-          storeName: current.storeName,
-          currentImageUrl: current.imageUrl,
-        ),
-      ),
-    );
-
-    if (newUrl == null || newUrl.isEmpty) return;
-
-    current.imageUrl = newUrl;
-    await _ticketService.updateTicket(current);
-  }
-
+  // El comportamiento de edición individual ahora está en StoreTicketsScreen.
+  // Solo lo dejamos por si hiciera falta a nivel global.
   /// Muestra un menú inferior (BottomSheet) para que el usuario elija
   /// si desea escanear el ticket mediante OCR (foto) o escanear un
   /// código de barras / QR de forma rápida.
@@ -54,21 +38,22 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) {
+        final t = AppStrings.of(context);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Elige cómo escanear',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  t.chooseScanMode,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 ListTile(
                   leading: const Icon(Icons.document_scanner, color: Color(0xFFE91E63)),
-                  title: const Text('Escanear Ticket (OCR)'),
-                  subtitle: const Text('Toma una foto al comercio y fecha'),
+                  title: Text(t.scanOcrTitle),
+                  subtitle: Text(t.scanOcrSubtitle),
                   onTap: () {
                     Navigator.pop(context); // Cerrar Modal
                     Navigator.push(
@@ -79,8 +64,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.qr_code_scanner, color: Color(0xFFE91E63)),
-                  title: const Text('Escanear Código (QR / Barras)'),
-                  subtitle: const Text('Detecta códigos rápidos sobre la marcha'),
+                  title: Text(t.scanBarcodeTitle),
+                  subtitle: Text(t.scanBarcodeSubtitle),
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
@@ -173,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextField(
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Buscar comercio...',
+              hintText: t.searchStore,
               prefixIcon: const Icon(Icons.search, color: Colors.white54),
             ),
             onChanged: (val) {
@@ -203,6 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
           StreamBuilder<List<Ticket>>(
             stream: _ticketService.getUserTickets(),
             builder: (context, snapshot) {
+              final t = AppStrings.of(context);
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -217,29 +203,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
               final tickets = snapshot.data ?? [];
               
-              // Filtrado local en tiempo real por búsqueda
+              // Filtrado local pre-existente
               final filteredTickets = tickets.where((t) {
                 return t.storeName.toLowerCase().contains(_searchQuery) ||
                        t.categoria.toLowerCase().contains(_searchQuery);
               }).toList();
 
               if (filteredTickets.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
-                    'No se encontraron tickets.',
-                    style: TextStyle(color: Colors.black54, fontSize: 16),
+                    t.noStoresFound,
+                    style: const TextStyle(color: Colors.black54, fontSize: 16),
                   ),
                 );
               }
 
+              // Agrupación de tickets por nombre ignorando case (Carpetas)
+              final Map<String, List<Ticket>> groupedMap = {};
+              for (var t in filteredTickets) {
+                final key = t.storeName.trim().toLowerCase();
+                if (!groupedMap.containsKey(key)) {
+                  groupedMap[key] = [];
+                }
+                groupedMap[key]!.add(t);
+              }
+              final groups = groupedMap.values.toList();
+
               return ListView.separated(
                 padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
-                itemCount: filteredTickets.length,
+                itemCount: groups.length,
                 separatorBuilder: (context, index) => const SizedBox(height: 20),
                 itemBuilder: (context, index) {
-                  return TicketStoreCard(
-                    ticket: filteredTickets[index],
-                    onEditPressed: () => _openEditStoreImage(filteredTickets[index]),
+                  final groupTickets = groups[index];
+                  final storeNameTitle = groupTickets.first.storeName;
+                  return StoreGroupCard(
+                    storeName: storeNameTitle,
+                    tickets: groupTickets,
                   );
                 },
               );

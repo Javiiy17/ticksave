@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/l10n/app_strings.dart';
 
 import '../services/auth_service.dart';
 
@@ -37,7 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rellena email y contraseña.')),
+        SnackBar(content: Text(AppStrings.of(context).fillEmailPass)),
       );
       return;
     }
@@ -48,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cuenta creada. Ya puedes iniciar sesión.')),
+        SnackBar(content: Text(AppStrings.of(context).accountCreatedSuccess)),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -108,9 +109,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Guarda tus tickets y garantías',
-          style: TextStyle(
+        Text(
+          AppStrings.of(context).saveTicketsWarranties,
+          style: const TextStyle(
             color: Colors.white70,
             fontSize: 16,
           ),
@@ -139,9 +140,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Crear Cuenta',
-            style: TextStyle(
+          Text(
+            AppStrings.of(context).createAccount,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -149,7 +150,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 30),
           Text(
-            'Email',
+            AppStrings.of(context).emailLabel,
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: Colors.white.withValues(alpha: 0.9),
@@ -160,13 +161,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              hintText: 'tu@email.com',
+              hintText: AppStrings.of(context).emailHint,
               prefixIcon: const Icon(Icons.alternate_email),
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'Contraseña',
+            AppStrings.of(context).passwordLabel,
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: Colors.white.withValues(alpha: 0.9),
@@ -176,9 +177,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           TextField(
             controller: _passwordController,
             obscureText: true,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: '••••••••',
-              prefixIcon: const Icon(Icons.lock_outline),
+              prefixIcon: Icon(Icons.lock_outline),
             ),
           ),
           const SizedBox(height: 30),
@@ -193,7 +194,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Registrarse'),
+                  : Text(AppStrings.of(context).registerButton),
             ),
           ),
           const SizedBox(height: 20),
@@ -203,11 +204,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  text: '¿Ya tienes cuenta? ',
+                  text: AppStrings.of(context).alreadyHaveAccount,
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                   children: [
                     TextSpan(
-                      text: 'Inicia sesión',
+                      text: AppStrings.of(context).loginLink,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,

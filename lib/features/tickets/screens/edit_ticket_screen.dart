@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../models/ticket.dart';
 import '../services/ticket_service.dart';
 import '../../home/screens/home_screen.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/settings/app_settings_scope.dart';
 import '../../../core/utils/price_currency.dart';
 
@@ -65,6 +68,7 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
   late TextEditingController _priceController;
   late TextEditingController _categoryController;
   late TextEditingController _dateController;
+  late TextEditingController _scannedCodeController;
   
   bool _isLoading = false;
 
@@ -89,6 +93,9 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
             widget.scannedDate ?? 
             widget._compatDate ?? ''
     );
+    _scannedCodeController = TextEditingController(
+      text: widget.existingTicket?.scannedCode ?? widget.scannedCode ?? ''
+    );
   }
 
   @override
@@ -97,6 +104,7 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
     _priceController.dispose();
     _categoryController.dispose();
     _dateController.dispose();
+    _scannedCodeController.dispose();
     super.dispose();
   }
 
@@ -138,18 +146,30 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
         if (url != null) imageUrl = url;
       }
 
+      DateTime parsedDate;
+      try {
+        parsedDate = DateFormat('dd/MM/yyyy').parse(_dateController.text.trim());
+      } catch (_) {
+        parsedDate = DateTime.now();
+      }
+
       final newTicketData = Ticket(
         id: widget.existingTicket?.id,
         storeName: _storeController.text.trim(),
-        price: '${_priceController.text.trim()} €', // O usar PriceCurrency
-        purchaseDate: DateTime.now(), // Aquí se debería parsear _dateController si se quiere precisión
+        price: '${_priceController.text.trim().replaceAll(',', '.')} €', 
+        purchaseDate: parsedDate,
         imageUrl: imageUrl,
         categoria: _categoryController.text.trim(),
+        scannedCode: _scannedCodeController.text.trim().isNotEmpty ? _scannedCodeController.text.trim() : null,
+        barcodeFormat: widget.existingTicket?.barcodeFormat ?? widget.barcodeFormatLabel,
       );
 
       if (widget.existingTicket == null) {
         await _ticketService.addTicket(newTicketData);
         if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppStrings.of(context).ticketCreatedSuccess), backgroundColor: Colors.green),
+        );
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -158,12 +178,20 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
       } else {
         await _ticketService.updateTicket(newTicketData);
         if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppStrings.of(context).ticketUpdatedSuccess), backgroundColor: Colors.green),
+        );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(e.toString().contains('Timeout') 
+              ? 'Error: Falla conexión en bdd' 
+              : 'Error al guardar: $e'), 
+            backgroundColor: Colors.redAccent
+          ),
         );
       }
     } finally {
@@ -173,12 +201,13 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     final bool isEditing = widget.existingTicket != null || widget._compatStoreName != null;
     
     return Scaffold(
       backgroundColor: const Color(0xFF090310),
       appBar: AppBar(
-        title: Text(isEditing ? 'Editar Ticket' : 'Guardar Nuevo Ticket'),
+        title: Text(isEditing ? t.editTicketTitle : t.saveNewTicket),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -190,34 +219,127 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
               const SizedBox(height: 25),
               _buildTextField(
                 controller: _storeController,
-                label: 'Comercio / Tienda',
+                label: t.storeLabel,
                 icon: Icons.storefront,
               ),
               const SizedBox(height: 20),
               _buildTextField(
                 controller: _dateController,
-                label: 'Fecha',
+                label: t.dateLabel,
                 icon: Icons.calendar_today,
                 hint: 'dd/mm/aaaa',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.today, color: Color(0xFFE91E63)),
+                  onPressed: () {
+                    setState(() {
+                      _dateController.text = DateFormat('dd/MM/yyyy').format(DateTime.now());
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 20),
               _buildTextField(
                 controller: _priceController,
-                label: 'Precio',
+                label: t.priceLabel,
                 icon: Icons.attach_money,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+[,.]?\d*')),
+                ],
               ),
               const SizedBox(height: 20),
               _buildTextField(
                 controller: _categoryController,
-                label: 'Categoría',
+                label: t.category,
                 icon: Icons.category,
               ),
+              if (_scannedCodeController.text.isNotEmpty || widget.barcodeFormatLabel != null) 
+                _buildBarcodeInfoSection(),
               const SizedBox(height: 40),
               _buildSaveButton(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBarcodeInfoSection() {
+    final t = AppStrings.of(context);
+    final formatLabel = widget.existingTicket?.barcodeFormat ?? widget.barcodeFormatLabel ?? t.unknownFormat;
+    final isQr = formatLabel.toLowerCase().contains('qr');
+    final codeValue = _scannedCodeController.text;
+    
+    // Si borran el código, no renderizar imagen fantasma
+    if (codeValue.isEmpty) return const SizedBox.shrink();
+
+    final url = isQr 
+        ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$codeValue'
+        : 'https://barcodeapi.org/api/128/$codeValue';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 30),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF140A26),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.codeInfo,
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          _buildTextField(
+            controller: _scannedCodeController,
+            label: t.cardIdLabel,
+            icon: Icons.pin_outlined,
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.qr_code_scanner, color: Colors.white70),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(t.formatDetected, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text(formatLabel, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Visualización animada en blanco para simular la vista
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Image.network(
+              url, 
+              height: 100, 
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.qr_code, color: Colors.black26, size: 80),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -243,15 +365,20 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
     required IconData icon,
     String? hint,
     TextInputType? keyboardType,
+    Widget? suffixIcon,
+    List<TextInputFormatter>? inputFormatters,
   }) {
+    final t = AppStrings.of(context);
     return TextFormField(
       controller: controller,
       style: const TextStyle(color: Colors.white),
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
         prefixIcon: Icon(icon, color: Colors.white70),
+        suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: Colors.white12),
@@ -261,13 +388,15 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
           borderSide: const BorderSide(color: Color(0xFFFF4081)),
         ),
       ),
-      validator: (val) => val!.isEmpty ? 'Campo requerido' : null,
+      validator: (val) => val!.isEmpty ? t.requiredField : null,
     );
   }
 
   Widget _buildSaveButton() {
+    final t = AppStrings.of(context);
     return SizedBox(
       width: double.infinity,
+      height: 55,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleSave,
         style: ElevatedButton.styleFrom(
@@ -284,9 +413,9 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
             height: 55,
             child: _isLoading 
                 ? const CircularProgressIndicator(color: Colors.white)
-                : const Text(
-                    'GUARDAR TICKET',
-                    style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                : Text(
+                    t.saveTicketButton,
+                    style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.white),
                   ),
           ),
         ),
