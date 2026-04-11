@@ -49,7 +49,38 @@ class _StoreTicketsScreenState extends State<StoreTicketsScreen> {
     setState(() {});
   }
 
-  @override
+  Future<void> _deleteFolder() async {
+    final t = AppStrings.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF140A26),
+        title: Text(t.deleteFolderConfirmTitle, style: const TextStyle(color: Colors.white)),
+        content: Text(t.deleteFolderConfirmBody, style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t.cancel, style: const TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(t.delete, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      for (final ticket in widget.tickets) {
+        if (ticket.id != null) {
+          await _ticketService.deleteTicket(ticket.id!);
+        }
+      }
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Mismo tono suave de listado
@@ -57,6 +88,12 @@ class _StoreTicketsScreenState extends State<StoreTicketsScreen> {
         title: Text(AppStrings.of(context).storeTicketsTitle(widget.storeName)),
         backgroundColor: const Color(0xFF090310),
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+            onPressed: _deleteFolder,
+          ),
+        ],
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(20),
@@ -67,6 +104,11 @@ class _StoreTicketsScreenState extends State<StoreTicketsScreen> {
           return TicketStoreCard(
             ticket: t,
             onEditPressed: () => _openEditStoreImage(t),
+            onDeleted: () {
+              setState(() {
+                _localTickets.removeWhere((item) => item.id == t.id);
+              });
+            },
           );
         },
       ),

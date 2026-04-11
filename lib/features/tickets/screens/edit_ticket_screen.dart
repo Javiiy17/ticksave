@@ -168,7 +168,10 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
         await _ticketService.addTicket(newTicketData);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppStrings.of(context).ticketCreatedSuccess), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(AppStrings.of(context).ticketCreatedSuccess, style: const TextStyle(color: Colors.white)), 
+            backgroundColor: Colors.green
+          ),
         );
         Navigator.pushAndRemoveUntil(
           context,
@@ -179,7 +182,10 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
         await _ticketService.updateTicket(newTicketData);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppStrings.of(context).ticketUpdatedSuccess), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(AppStrings.of(context).ticketUpdatedSuccess, style: const TextStyle(color: Colors.white)), 
+            backgroundColor: Colors.green
+          ),
         );
         Navigator.pop(context, true);
       }
@@ -189,7 +195,7 @@ class _EditTicketScreenState extends State<EditTicketScreen> {
           SnackBar(
             content: Text(e.toString().contains('Timeout') 
               ? 'Error: Falla conexión en bdd' 
-              : 'Error al guardar: $e'), 
+              : 'Error al guardar: $e', style: const TextStyle(color: Colors.white)), 
             backgroundColor: Colors.redAccent
           ),
         );

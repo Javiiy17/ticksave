@@ -38,7 +38,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppStrings.of(context).fillEmailPass)),
+        SnackBar(
+          content: Text(AppStrings.of(context).fillEmailPass, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
@@ -49,13 +52,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppStrings.of(context).accountCreatedSuccess)),
+        SnackBar(
+          content: Text(AppStrings.of(context).accountCreatedSuccess, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(friendlyAuthError(e))),
+        SnackBar(
+          content: Text(friendlyAuthError(e), style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);

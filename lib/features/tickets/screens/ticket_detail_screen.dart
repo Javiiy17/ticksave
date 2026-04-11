@@ -1,4 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/settings/app_settings_scope.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -105,6 +110,80 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       
       // Que no se nos olvide subir esto a Firebase
       await TicketService().updateTicket(t);
+    }
+  }
+
+  Future<void> _deleteTicket() async {
+    final t = AppStrings.of(context);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF140A26),
+        title: Text(t.deleteTicketConfirmTitle, style: const TextStyle(color: Colors.white)),
+        content: Text(t.deleteTicketConfirmBody, style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t.cancel, style: const TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(t.delete, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      if (widget.ticket.id != null) {
+        await TicketService().deleteTicket(widget.ticket.id!);
+      }
+      if (mounted) Navigator.pop(context, true); // Go back to the previous screen
+    }
+  }
+
+  Future<void> _shareTicket() async {
+    final t = AppStrings.of(context);
+    final msg = t.shareTicketMessage(_storeName, _date, _price, code: _scannedCode);
+    
+    List<XFile> shareFiles = [];
+    
+    try {
+      final tempDir = await getTemporaryDirectory();
+
+      // 1. Imagen física del ticket
+      if (_imageUrl.isNotEmpty && _imageUrl.startsWith('http')) {
+        final res = await http.get(Uri.parse(rasterHttpUrlOrPlaceholder(_imageUrl)));
+        if (res.statusCode == 200) {
+          final file = File('${tempDir.path}/ticket_share.jpg');
+          await file.writeAsBytes(res.bodyBytes);
+          shareFiles.add(XFile(file.path));
+        }
+      }
+
+      // 2. Imagen generada del formato (QR/BarCode)
+      if (_scannedCode != null && _scannedCode!.isNotEmpty) {
+        final isQr = _barcodeFormatLabel?.toLowerCase().contains('qr') == true;
+        final codeUrl = isQr 
+            ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$_scannedCode'
+            : 'https://barcodeapi.org/api/128/$_scannedCode';
+            
+        final resCode = await http.get(Uri.parse(codeUrl));
+        if (resCode.statusCode == 200) {
+          final codeFile = File('${tempDir.path}/code_share.png');
+          await codeFile.writeAsBytes(resCode.bodyBytes);
+          shareFiles.add(XFile(codeFile.path));
+        }
+      }
+    } catch (e) {
+      // Si falla la red, continuamos con modo solo-texto o lo que hayamos bajado
+    }
+    
+    if (shareFiles.isNotEmpty) {
+      await Share.shareXFiles(shareFiles, text: msg);
+    } else {
+      await Share.share(msg);
     }
   }
 
@@ -335,9 +414,37 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           width: double.infinity,
           height: 55,
           child: OutlinedButton.icon(
+            onPressed: _shareTicket,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.blueAccent,
+              side: const BorderSide(color: Colors.blueAccent),
+            ),
+            icon: const Icon(Icons.share_outlined),
+            label: Text(t.shareTicket),
+          ),
+        ),
+        const SizedBox(height: 15),
+        SizedBox(
+          width: double.infinity,
+          height: 55,
+          child: OutlinedButton.icon(
             onPressed: _openEditTicket,
             icon: const Icon(Icons.edit_outlined),
             label: Text(t.editTicket),
+          ),
+        ),
+        const SizedBox(height: 15),
+        SizedBox(
+          width: double.infinity,
+          height: 55,
+          child: OutlinedButton.icon(
+            onPressed: _deleteTicket,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              side: const BorderSide(color: Colors.redAccent),
+            ),
+            icon: const Icon(Icons.delete_outline),
+            label: Text(t.deleteTicket),
           ),
         ),
       ],
