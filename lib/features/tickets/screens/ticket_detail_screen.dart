@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/settings/app_settings_scope.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/utils/price_currency.dart';
 import '../../../core/utils/raster_image_url.dart';
 import '../models/ticket.dart';
@@ -57,8 +58,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     _price = widget.ticket.price;
     _imageUrl = widget.ticket.imageUrl;
     _categoria = widget.ticket.categoria;
-    _scannedCode = widget.scannedCode;
-    _barcodeFormatLabel = widget.barcodeFormatLabel;
+    _scannedCode = widget.ticket.scannedCode ?? widget.scannedCode;
+    _barcodeFormatLabel = widget.ticket.barcodeFormat ?? widget.barcodeFormatLabel;
   }
 
   void _openAlertScreen() {
@@ -109,19 +110,24 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFF090310), // Tema Pink & Purple base
       appBar: AppBar(
-        title: const Text(
-          'Detalle del Ticket',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          t.ticketDetailTitle,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildHeaderImage(),
+            if (_scannedCode != null && _scannedCode!.isNotEmpty)
+              _buildBarcodeVisualizer()
+            else
+              _buildHeaderImage(),
             const SizedBox(height: 20),
             _buildInfoCard(),
             const SizedBox(height: 20),
@@ -169,143 +175,169 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     );
   }
 
+  Widget _buildBarcodeVisualizer() {
+    if (_scannedCode == null || _scannedCode!.isEmpty) return const SizedBox.shrink();
+
+    final isQr = _barcodeFormatLabel?.toLowerCase().contains('qr') == true;
+    final url = isQr 
+        ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$_scannedCode'
+        : 'https://barcodeapi.org/api/128/$_scannedCode';
+
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+            child: Padding(
+              padding: const EdgeInsets.all(25),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isQr ? 'Escaneando QR' : 'Escaneando Barras',
+                    style: const TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 25),
+                  Image.network(url, fit: BoxFit.contain, height: 250),
+                  const SizedBox(height: 20),
+                  Text(_scannedCode!, style: const TextStyle(color: Colors.black54, fontSize: 18, letterSpacing: 2)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(top: 20),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Column(
+          children: [
+            Image.network(url, height: 90, fit: BoxFit.contain),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.zoom_out_map, color: Colors.grey.shade600, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  AppStrings.of(context).tapToEnlarge,
+                  style: const TextStyle(color: Colors.black45, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoCard() {
+    final t = AppStrings.of(context);
+    final bool hasBarcode = _scannedCode != null && _scannedCode!.isNotEmpty;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFF140A26),
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5)),
+        ],
       ),
+      padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _InfoRow(
-            icon: Icons.storefront,
-            iconColor: Colors.blueAccent,
-            title: 'Comercio',
-            value: _storeName,
-            isBold: true,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  _storeName,
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                ),
+              ),
+              if (_categoria.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFFE91E63).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
+                  child: Text(_categoria, style: const TextStyle(color: Color(0xFFE91E63), fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+            ],
           ),
-          if (_scannedCode != null && _scannedCode!.isNotEmpty) ...[
-            const Divider(height: 30, color: Colors.white12),
-            _InfoRow(
-              icon: Icons.qr_code_scanner,
-              iconColor: Colors.deepOrange,
-              title: 'Código leído',
-              value: _scannedCode!,
-            ),
+          if (hasBarcode) ...[
+            const SizedBox(height: 15),
+            const Divider(color: Colors.white12),
+            const SizedBox(height: 15),
+            _InfoRow(icon: Icons.qr_code, iconColor: Colors.deepOrange, title: t.codeRead, value: _scannedCode!),
+            _InfoRow(icon: Icons.loyalty, iconColor: Colors.teal, title: t.codeFormat, value: _barcodeFormatLabel ?? t.unknownFormat),
           ],
-          if (_barcodeFormatLabel != null &&
-              _barcodeFormatLabel!.isNotEmpty) ...[
-            const Divider(height: 30, color: Colors.white12),
-            _InfoRow(
-              icon: Icons.view_week_outlined,
-              iconColor: Colors.teal,
-              title: 'Formato',
-              value: _barcodeFormatLabel!,
-            ),
-          ],
-          const Divider(height: 30, color: Colors.white12),
-          _InfoRow(
-            icon: Icons.calendar_today,
-            iconColor: Colors.greenAccent,
-            title: 'Fecha de compra',
-            value: _date,
-          ),
-          const Divider(height: 30, color: Colors.white12),
-          _InfoRow(
-            icon: Icons.attach_money,
-            iconColor: const Color(0xFFFF4081),
-            title: 'Importe',
-            value: PriceCurrency.formatForDisplay(
-              _price,
-              AppSettingsScope.of(context).currencySymbol,
-            ),
-            valueColor: const Color(0xFFFF4081),
-            isBold: true,
-            isLarge: true,
-          ),
-          const Divider(height: 30, color: Colors.white12),
-          _InfoRow(
-            icon: Icons.category_rounded,
-            iconColor: Colors.orangeAccent,
-            title: 'Categoría',
-            value: _categoria,
-          ),
+          const SizedBox(height: 15),
+          const Divider(color: Colors.white12),
+          const SizedBox(height: 15),
+          _InfoRow(icon: Icons.calendar_today, iconColor: Colors.greenAccent, title: t.purchaseDate, value: _date),
+          const Divider(color: Colors.white12, height: 30),
+          _InfoRow(icon: Icons.monetization_on, iconColor: const Color(0xFFFF4081), title: t.ticketAmount, value: PriceCurrency.formatForDisplay(_price, AppSettingsScope.of(context).currencySymbol), valueColor: const Color(0xFFFF4081), isBold: true, isLarge: true),
         ],
       ),
     );
   }
 
   Widget _buildWarrantySection() {
+    final t = AppStrings.of(context);
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFE91E63).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: const Color(0xFFE91E63).withValues(alpha: 0.3)),
+        gradient: const LinearGradient(colors: [Color(0xFFE91E63), Color(0xFF9C27B0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.notifications_active_rounded,
-            color: Color(0xFFFF4081),
-            size: 28,
+          Row(
+            children: [
+              const Icon(Icons.security, color: Colors.white, size: 28),
+              const SizedBox(width: 10),
+              Text(t.protectWarranty, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
           ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Protege tu garantía',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Configura una alerta para recordar el vencimiento de la garantía',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 10),
+          Text(t.warrantyAlertHint, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          const SizedBox(height: 15),
+          ElevatedButton(
+            onPressed: _openAlertScreen,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF9C27B0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
-          ),
+            child: Text(t.configureAlert),
+          )
         ],
       ),
     );
   }
 
   Widget _buildButtons(BuildContext context) {
+    final t = AppStrings.of(context);
     return Column(
       children: [
-        SizedBox(
-          width: double.infinity,
-          height: 55,
-          child: ElevatedButton.icon(
-            onPressed: _openAlertScreen,
-            icon: const Icon(Icons.notifications_active_outlined),
-            label: const Text('Configurar Alerta'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE91E63),
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
           height: 55,
           child: OutlinedButton.icon(
             onPressed: _openEditTicket,
             icon: const Icon(Icons.edit_outlined),
-            label: const Text('Editar Ticket'),
+            label: Text(t.editTicket),
           ),
         ),
       ],

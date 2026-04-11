@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/l10n/app_strings.dart';
 
 /// Pantalla para configurar una alerta de vencimiento de garantía.
 ///
@@ -62,9 +63,9 @@ class _AlertScreenState extends State<AlertScreen> {
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF111827),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: const Text(
-          '¡Alerta guardada correctamente!',
-          style: TextStyle(
+        content: Text(
+          AppStrings.of(context).alertSavedSuccess,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 15,
             fontWeight: FontWeight.w500,
@@ -80,9 +81,9 @@ class _AlertScreenState extends State<AlertScreen> {
       backgroundColor: Theme.of(context).primaryColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
-        title: const Text(
-          'Configurar Alerta',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          AppStrings.of(context).configureAlert,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         leading: IconButton(
@@ -124,7 +125,7 @@ class _AlertScreenState extends State<AlertScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Comprado el ${widget.purchaseDate}',
+              AppStrings.of(context).purchasedOn(widget.purchaseDate),
               style: const TextStyle(color: Colors.black),
             ),
           ],
@@ -180,12 +181,12 @@ class _AlertScreenState extends State<AlertScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
+            children: [
               Icon(Icons.calendar_month_outlined, color: Colors.blue),
               SizedBox(width: 8),
               Text(
-                'Fecha de vencimiento',
-                style: TextStyle(
+                AppStrings.of(context).expirationDate,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                   color: Colors.black,
@@ -212,7 +213,7 @@ class _AlertScreenState extends State<AlertScreen> {
           ),
           TextButton(
             onPressed: _selectSuggestedOneYear,
-            child: const Text('Usar fecha sugerida (1 año después)'),
+            child: Text(AppStrings.of(context).useSuggestedDate),
           ),
         ],
       ),
@@ -237,12 +238,12 @@ class _AlertScreenState extends State<AlertScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
+            children: [
               Icon(Icons.notifications_active_outlined, color: Colors.orange),
               SizedBox(width: 8),
               Text(
-                'Días de aviso',
-                style: TextStyle(
+                AppStrings.of(context).noticeDays,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                   color: Colors.black,
@@ -252,7 +253,7 @@ class _AlertScreenState extends State<AlertScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Recibirás una notificación con esta antelación.',
+            AppStrings.of(context).noticeDaysHint,
             style: const TextStyle(color: Colors.black, fontSize: 13),
           ),
           const SizedBox(height: 16),
@@ -305,9 +306,9 @@ class _AlertScreenState extends State<AlertScreen> {
           elevation: 5,
           shadowColor: const Color(0xFF1877F2).withValues(alpha: 0.4),
         ),
-        child: const Text(
-          'Guardar alerta',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        child: Text(
+          AppStrings.of(context).saveAlertButton,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -329,7 +330,7 @@ class _AlertScreenState extends State<AlertScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Te enviaremos una notificación cuando se acerque la fecha de vencimiento.',
+              AppStrings.of(context).noticeInfoHint,
               style: TextStyle(color: Colors.blue[800], fontSize: 13),
             ),
           ),
@@ -355,7 +356,7 @@ class _AlertScreenState extends State<AlertScreen> {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
-          '$days días',
+          AppStrings.of(context).daysX(days),
           style: TextStyle(
             color: isSelected ? Colors.white : const Color(0xFF111827),
             fontWeight: FontWeight.bold,

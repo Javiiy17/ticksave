@@ -13,6 +13,8 @@ class Ticket {
     required this.purchaseDate,
     required this.imageUrl,
     this.categoria = 'General',
+    this.scannedCode,
+    this.barcodeFormat,
   });
 
   String? id;
@@ -22,6 +24,8 @@ class Ticket {
   DateTime purchaseDate;
   String imageUrl;
   String categoria;
+  String? scannedCode;
+  String? barcodeFormat;
 
   /// Devuelve la fecha de fin de garantía (3 años después de la compra)
   DateTime get expirationDate {
@@ -56,6 +60,8 @@ class Ticket {
           : DateTime.now(),
       imageUrl: data['url_imagen'] as String? ?? '',
       categoria: data['categoria'] as String? ?? 'General',
+      scannedCode: data['codigo_escaneado'] as String?,
+      barcodeFormat: data['formato_codigo'] as String?,
     );
   }
 
@@ -69,6 +75,8 @@ class Ticket {
       'fecha_garantia': Timestamp.fromDate(expirationDate),
       'url_imagen': imageUrl,
       'categoria': categoria,
+      'codigo_escaneado': scannedCode,
+      'formato_codigo': barcodeFormat,
       'modificado_en': FieldValue.serverTimestamp(),
     };
   }

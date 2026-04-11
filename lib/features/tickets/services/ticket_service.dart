@@ -43,7 +43,8 @@ class TicketService {
         .collection('users')
         .doc(user.uid)
         .collection('tickets')
-        .add(ticket.toMap());
+        .add(ticket.toMap())
+        .timeout(const Duration(seconds: 10));
   }
 
   /// Sobreescribe los datos de un ticket
@@ -56,7 +57,8 @@ class TicketService {
         .doc(user.uid)
         .collection('tickets')
         .doc(ticket.id)
-        .update(ticket.toMap());
+        .update(ticket.toMap())
+        .timeout(const Duration(seconds: 10));
   }
   
   /// Se carga el ticket y lo borra
@@ -117,9 +119,12 @@ class TicketService {
       
       String possibleStore = "Desconocido";
       String possibleDate = "Hoy";
+      String possiblePrice = "";
       
       // Patter loco de regex para fechas (12/03/2026, etc)
       RegExp datePattern =  RegExp(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b');
+      // Regex general para un importe: '15,50' o '15.50'
+      RegExp pricePattern = RegExp(r'\b\d+[,.]\d{2}\b');
       
       // Normalmente lo primerito en el ticket arriba del todo es el nombre
       if (recognizedText.blocks.isNotEmpty) {
@@ -132,14 +137,21 @@ class TicketService {
 
       // Pasamos a buscar la fecha a ver si hay suerte
       final String fullText = recognizedText.text;
-      final match = datePattern.firstMatch(fullText);
-      if (match != null) {
-        possibleDate = match.group(0) ?? "Hoy";
+      final matchDate = datePattern.firstMatch(fullText);
+      if (matchDate != null) {
+        possibleDate = matchDate.group(0) ?? "Hoy";
+      }
+
+      // Analizamos los precios (suele ser el último gran número de la factura)
+      final priceMatches = pricePattern.allMatches(fullText);
+      if (priceMatches.isNotEmpty) {
+        possiblePrice = priceMatches.last.group(0) ?? "";
       }
 
       return {
         'storeName': possibleStore,
         'date': possibleDate,
+        'price': possiblePrice,
       };
 
     } finally {

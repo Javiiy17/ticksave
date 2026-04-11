@@ -45,6 +45,7 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
           builder: (context) => EditTicketScreen(
             scannedStoreName: data['storeName'],
             scannedDate: data['date'],
+            initialPrice: data['price'],
             newImageFile: _imageFile,
           ),
         ),

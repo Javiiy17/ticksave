@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'edit_ticket_screen.dart';
+import '../../../core/l10n/app_strings.dart';
 
 /// Define los modos de escaneo soportados por la pantalla.
 /// @author Javier Abellán
@@ -90,10 +91,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> with Single
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Escanear Código', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(t.scanCodeTitle, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -168,13 +170,13 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> with Single
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildModeButton(
-                  title: 'Barras',
+                  title: t.barcodeTab,
                   icon: Icons.view_headline,
                   mode: ScanMode.barcode,
                 ),
                 const SizedBox(width: 20),
                 _buildModeButton(
-                  title: 'Código QR',
+                  title: t.qrTab,
                   icon: Icons.qr_code_2,
                   mode: ScanMode.qr,
                 ),

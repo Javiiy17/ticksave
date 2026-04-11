@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/l10n/app_strings.dart';
 
 import '../../home/screens/home_screen.dart';
 import '../services/auth_service.dart';
@@ -51,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showErrorSnackBar('Rellena email y contraseña.');
+      _showErrorSnackBar(AppStrings.of(context).fillEmailPass);
       return;
     }
 
@@ -183,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Protege tus garantías en la nube',
+          AppStrings.of(context).protectWarrantiesCloud,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.6),
             fontSize: 16,
@@ -216,27 +217,27 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Bienvenido de nuevo',
-            style: TextStyle(
+          Text(
+            AppStrings.of(context).welcomeBack,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 30),
-          _buildTextFieldLabel('Email'),
+          _buildTextFieldLabel(AppStrings.of(context).emailLabel),
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              hintText: 'tu@correo.com',
-              prefixIcon: Icon(Icons.email_outlined, color: Colors.white54),
+            decoration: InputDecoration(
+              hintText: AppStrings.of(context).emailHint,
+              prefixIcon: const Icon(Icons.email_outlined, color: Colors.white54),
             ),
           ),
           const SizedBox(height: 20),
-          _buildTextFieldLabel('Contraseña'),
+          _buildTextFieldLabel(AppStrings.of(context).passwordLabel),
           TextField(
             controller: _passwordController,
             obscureText: true,
@@ -274,9 +275,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: 24,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : const Text(
-                          'ENTRAR',
-                          style: TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.bold),
+                      : Text(
+                          AppStrings.of(context).loginButton,
+                          style: const TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.bold),
                         ),
                 ),
               ),
@@ -322,9 +323,9 @@ class _LoginScreenState extends State<LoginScreen> {
           errorBuilder: (context, error, stackTrace) =>
               const Icon(Icons.public, color: Colors.white),
         ),
-        label: const Text(
-          'Continuar con Google',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+        label: Text(
+          AppStrings.of(context).googleSignIn,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
         ),
       ),
     );
@@ -336,10 +337,10 @@ class _LoginScreenState extends State<LoginScreen> {
       child: TextButton(
         onPressed: _goToRegister,
         style: TextButton.styleFrom(padding: const EdgeInsets.all(16)),
-        child: const Text.rich(
+        child: Text.rich(
           TextSpan(
-            text: '¿NUEVO POR AQUÍ?\n',
-            style: TextStyle(
+            text: AppStrings.of(context).isNewUser,
+            style: const TextStyle(
               color: Colors.white54,
               fontSize: 13,
               letterSpacing: 1.2,
@@ -347,8 +348,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             children: [
               TextSpan(
-                text: '¡REGÍSTRATE!',
-                style: TextStyle(
+                text: AppStrings.of(context).signUpLink,
+                style: const TextStyle(
                   color: Color(0xFFFF4081),
                   fontWeight: FontWeight.w900,
                   fontSize: 16,
