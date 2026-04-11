@@ -11,23 +11,28 @@ class TicketStoreCard extends StatelessWidget {
     super.key,
     required this.ticket,
     required this.onEditPressed,
+    this.onDeleted,
   });
 
   final Ticket ticket;
   final VoidCallback onEditPressed;
+  final VoidCallback? onDeleted;
 
   @override
   Widget build(BuildContext context) {
     final bool expiring = ticket.isExpiringSoon;
     
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push<bool>(
           context,
-          MaterialPageRoute<void>(
+          MaterialPageRoute<bool>(
             builder: (context) => TicketDetailScreen(ticket: ticket),
           ),
         );
+        if (result == true && onDeleted != null) {
+          onDeleted!();
+        }
       },
       child: Container(
         decoration: BoxDecoration(

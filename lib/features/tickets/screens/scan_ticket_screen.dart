@@ -56,7 +56,7 @@ class _ScanTicketScreenState extends State<ScanTicketScreen> {
         setState(() => _isProcessing = false);
         ScaffoldMessenger.of(context).showSnackBar(
            const SnackBar(
-             content: Text('Error al procesar el ticket. Prueba de nuevo.'), 
+             content: Text('Error al procesar el ticket. Prueba de nuevo.', style: TextStyle(color: Colors.white)), 
              backgroundColor: Colors.redAccent,
              behavior: SnackBarBehavior.floating,
            ),

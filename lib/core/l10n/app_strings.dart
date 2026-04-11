@@ -67,6 +67,17 @@ class AppStrings {
   String get tapToEnlarge => _en ? 'Tap to enlarge and scan' : 'Toca para ampliar y escanear';
   String get scanningQr => _en ? 'Scanning QR' : 'Escaneando QR';
   String get scanningBarcode => _en ? 'Scanning Barcode' : 'Escaneando Barras';
+  String get shareTicket => _en ? 'Share Ticket' : 'Compartir Ticket';
+  String shareTicketMessage(String store, String date, String price, {String? code}) {
+    String msg = _en 
+      ? 'Here is my ticket from $store on $date for $price.' 
+      : 'Aquí tienes mi ticket de compra de $store del día $date por $price.';
+    
+    if (code != null && code.isNotEmpty) {
+      msg += _en ? '\nScanned code: $code' : '\nCódigo escaneado: $code';
+    }
+    return msg;
+  }
 
   // Edit Ticket
   String get editTicketTitle => _en ? 'Edit Ticket' : 'Editar Ticket';
@@ -117,4 +128,25 @@ class AppStrings {
   String get noticeInfoHint => _en ? 'We will send you a notification when the expiration date approaches.' : 'Te enviaremos una notificación cuando se acerque la fecha de vencimiento.';
   String daysX(int n) => _en ? '$n days' : '$n días';
   String get backButton => _en ? 'Back' : 'Volver';
+  
+  // Delete Features
+  String get deleteTicket => _en ? 'Delete Ticket' : 'Eliminar Ticket';
+  String get deleteTicketConfirmTitle => _en ? 'Delete Ticket?' : '¿Eliminar Ticket?';
+  String get deleteTicketConfirmBody => _en ? 'Are you sure you want to delete this ticket? This action cannot be undone.' : '¿Estás seguro de que deseas eliminar este ticket? Esta acción no se puede deshacer.';
+  String get deleteFolder => _en ? 'Delete Folder' : 'Eliminar Carpeta';
+  String get deleteFolderConfirmTitle => _en ? 'Delete Folder?' : '¿Eliminar Carpeta?';
+  String get deleteFolderConfirmBody => _en ? 'Are you sure you want to delete this folder and all its tickets? This action cannot be undone.' : '¿Estás seguro de que deseas eliminar esta carpeta y todos sus tickets? Esta acción no se puede deshacer.';
+  String get cancel => _en ? 'Cancel' : 'Cancelar';
+  String get delete => _en ? 'Delete' : 'Eliminar';
+  
+  // Backup
+  String get backupSection => _en ? 'Backup & Restore' : 'Copias de Seguridad';
+  String get backupHint => _en ? 'Safely store your tickets and images in your personal Google Drive.' : 'Guarda tus tickets e imágenes de forma segura en tu Google Drive personal.';
+  String get backupDrive => _en ? 'Backup to Google Drive' : 'Hacer copia en Google Drive';
+  String get restoreDrive => _en ? 'Restore from Google Drive' : 'Restaurar de Google Drive';
+  String get backupSuccess => _en ? 'Backup completed successfully!' : '¡Copia de seguridad completada!';
+  String get backupError => _en ? 'Failed to create backup.' : 'Error al crear la copia de seguridad.';
+  String get restoreSuccess => _en ? 'Restore completed successfully!' : '¡Restauración completada con éxito!';
+  String get restoreError => _en ? 'Failed to restore backup (no backup found or network error).' : 'Error al restaurar (no hay copia o falló la conexión).';
+  String get pleaseWait => _en ? 'Please wait...' : 'Por favor, espera...';
 }

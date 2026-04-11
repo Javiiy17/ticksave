@@ -1,3 +1,4 @@
+import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/material.dart';
 import '../../../core/l10n/app_strings.dart';
 
@@ -55,24 +56,84 @@ class _AlertScreenState extends State<AlertScreen> {
     setState(() {});
   }
 
-  void _saveAlert() {
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context);
-    messenger.showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF111827),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Text(
-          AppStrings.of(context).alertSavedSuccess,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
+  Future<void> _saveAlert() async {
+    final parts = _dateController.text.split('/');
+    if (parts.length != 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Fecha inválida', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.redAccent,
         ),
+      );
+      return;
+    }
+
+    final day = int.tryParse(parts[0]) ?? 1;
+    final month = int.tryParse(parts[1]) ?? 1;
+    final year = int.tryParse(parts[2]) ?? 2024;
+    final expirationDate = DateTime(year, month, day, 10, 0); // Lo ponemos a las 10 de la mañana
+    
+    // Alarma predeterminada basada en los días seleccionados.
+    // iOSParams lo pilla bien. En Android depende de la app de calendario.
+    final reminderDuration = Duration(days: _selectedDays);
+
+    final Event event = Event(
+      title: 'Vencimiento Garantía: ${widget.storeName}',
+      description: 'Recordatorio de fin de garantía para la compra realizada el ${widget.purchaseDate} en ${widget.storeName}. Generado por TickSave.',
+      startDate: expirationDate,
+      endDate: expirationDate.add(const Duration(hours: 1)),
+      allDay: true,
+      iosParams: IOSParams(
+        reminder: reminderDuration, 
+      ),
+      androidParams: const AndroidParams(
+        emailInvites: [], // Evita invitar a nadie sin querer
       ),
     );
+
+    // Lanza la aplicación de calendario nativa
+    try {
+      final result = await Add2Calendar.addEvent2Cal(event);
+
+      if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
+        Navigator.pop(context); // Volver a la pantalla anterior
+        if (result) {
+          messenger.showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF111827),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              content: Text(
+                AppStrings.of(context).alertSavedSuccess,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          );
+        } else {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo abrir el calendario', style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: No se pudo añadir la alarma.', style: const TextStyle(color: Colors.white)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -318,20 +379,20 @@ class _AlertScreenState extends State<AlertScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
+        color: const Color(0xFF1E293B), // Dark slate/blue for contrast
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.blue.withValues(alpha: 0.2),
+          color: Colors.white.withValues(alpha: 0.1),
         ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.lightbulb_outline, color: Colors.orange, size: 20),
+          const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               AppStrings.of(context).noticeInfoHint,
-              style: TextStyle(color: Colors.blue[800], fontSize: 13),
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ),
         ],

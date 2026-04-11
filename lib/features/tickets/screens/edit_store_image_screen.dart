@@ -59,7 +59,10 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context, _urlController.text);
     messenger.showSnackBar(
-      const SnackBar(content: Text('Imagen actualizada correctamente')),
+      const SnackBar(
+        content: Text('Imagen actualizada correctamente', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.green,
+      ),
     );
   }
 

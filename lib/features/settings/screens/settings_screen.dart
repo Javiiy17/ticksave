@@ -3,11 +3,48 @@ import 'package:flutter/material.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/settings/app_currency.dart';
 import '../../../core/settings/app_settings_scope.dart';
+import '../../backup/services/drive_service.dart';
 
 /// Ajustes básicos: idioma y divisa (símbolo mostrado).
 /// @author Luis Bermeo
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
+
+  Future<void> _handleBackup(BuildContext context, bool isRestore) async {
+    final t = AppStrings.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Text(t.pleaseWait),
+          ],
+        ),
+      ),
+    );
+
+    final driveService = DriveService();
+    final bool success = isRestore ? await driveService.restoreBackup() : await driveService.backupTickets();
+
+    if (context.mounted) {
+      Navigator.pop(context); // popup dismiss
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success 
+                ? (isRestore ? t.restoreSuccess : t.backupSuccess) 
+                : (isRestore ? t.restoreError : t.backupError),
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,6 +139,55 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         );
                       }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _sectionCard(
+                  context,
+                  icon: Icons.cloud_upload_outlined,
+                  iconColor: Colors.deepPurple,
+                  title: t.backupSection,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.backupHint,
+                        style: TextStyle(
+                          color: Colors.black.withValues(alpha: 0.7),
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handleBackup(context, false),
+                          icon: const Icon(Icons.backup_outlined),
+                          label: FittedBox(fit: BoxFit.scaleDown, child: Text(t.backupDrive)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1877F2),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _handleBackup(context, true),
+                          icon: const Icon(Icons.restore),
+                          label: FittedBox(fit: BoxFit.scaleDown, child: Text(t.restoreDrive)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF1877F2),
+                            side: const BorderSide(color: Color(0xFF1877F2)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
