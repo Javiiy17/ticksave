@@ -2,34 +2,33 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/raster_image_url.dart';
 
-/// Pantalla que permite personalizar la imagen asociada a una tienda.
-///
-/// El flujo es:
-/// - Se muestra la imagen actual y una vista previa.
-/// - El usuario puede pegar una URL o elegir una sugerencia.
-/// - Al guardar, devolvemos la URL seleccionada con `Navigator.pop`.
-/// @author Luis Bermeo
-class EditStoreImageScreen extends StatefulWidget {
-  const EditStoreImageScreen({
+/*
+ * ¿Qué hace este archivo?
+ * Como a veces la IA no encuentra un buen logo para una tienda 
+ * (imagina "Zapatería Paco"), esta pantalla te deja poner un enlace de Google 
+ * a la imagen que tú quieras para la carpeta de esa tienda. 
+ * Te damos 3 fotos de stock predeterminadas por si pasas de buscar enlaces.
+ */
+class PantallaEditarImagenComercio extends StatefulWidget {
+  const PantallaEditarImagenComercio({
     super.key,
-    required this.storeName,
+    required this.nombreComercio,
     required this.currentImageUrl,
   });
 
-  final String storeName;
+  final String nombreComercio;
   final String currentImageUrl;
 
   @override
-  State<EditStoreImageScreen> createState() => _EditStoreImageScreenState();
+  State<PantallaEditarImagenComercio> createState() => _EstadoPantallaEditarImagenComercio();
 }
 
-class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
-  late final TextEditingController _urlController;
-  late String _previewImageUrl;
+class _EstadoPantallaEditarImagenComercio extends State<PantallaEditarImagenComercio> {
+  late final TextEditingController _controladorUrl;
+  late String _urlImagenPrevia;
 
-  /// Sugerencias de imagen para que el usuario pueda elegir rápido
-  /// sin tener que buscar una URL.
-  final List<String> _suggestions = [
+  // Unas cuantas fotos random muy aesthetics de Unsplash para salir del paso
+  final List<String> _sugerencias = [
     'https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=300&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?q=80&w=300&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1534723452862-4c874018d66d?q=80&w=300&auto=format&fit=crop',
@@ -38,27 +37,29 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
   @override
   void initState() {
     super.initState();
-    _urlController = TextEditingController(text: widget.currentImageUrl);
-    _previewImageUrl = widget.currentImageUrl.trim();
+    _controladorUrl = TextEditingController(text: widget.currentImageUrl);
+    _urlImagenPrevia = widget.currentImageUrl.trim();
   }
 
   @override
   void dispose() {
-    _urlController.dispose();
+    _controladorUrl.dispose();
     super.dispose();
   }
 
-  void _updatePreview(String url) {
+  // Refresca la pantallita de arriba cuando metes una URL nueva
+  void _actualizarVistaPrevia(String url) {
     setState(() {
-      _previewImageUrl = url;
-      _urlController.text = url;
+      _urlImagenPrevia = url;
+      _controladorUrl.text = url;
     });
   }
 
-  void _saveImage() {
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context, _urlController.text);
-    messenger.showSnackBar(
+  // Devolvemos el texto de la URL a la pantalla anterior
+  void _guardarImagen() {
+    final mensajero = ScaffoldMessenger.of(context);
+    Navigator.pop(context, _controladorUrl.text);
+    mensajero.showSnackBar(
       const SnackBar(
         content: Text('Imagen actualizada correctamente', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.green,
@@ -87,17 +88,17 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _buildStoreInfoCard(),
+            _construirTarjetaInfoTienda(),
             const SizedBox(height: 20),
-            _buildPreviewCard(),
+            _construirTarjetaVistaPrevia(),
             const SizedBox(height: 20),
-            _buildUrlInputCard(),
+            _construirTarjetaCajaUrl(),
             const SizedBox(height: 20),
-            _buildSuggestionsCard(),
+            _construirTarjetaSugerencias(),
             const SizedBox(height: 30),
-            _buildActions(),
+            _construirBotones(),
             const SizedBox(height: 30),
-            _buildHintCard(),
+            _construirTarjetaPista(),
             const SizedBox(height: 30),
           ],
         ),
@@ -105,13 +106,13 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     );
   }
 
-  Widget _buildStoreInfoCard() {
-    return _buildWhiteCard(
-      child: Column(
+  Widget _construirTarjetaInfoTienda() {
+    return _construirTarjetaBlanca(
+      hijo: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.storeName,
+            widget.nombreComercio,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -128,18 +129,20 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     );
   }
 
-  Widget _buildPreviewCard() {
-    return _buildWhiteCard(
-      padding: EdgeInsets.zero,
-      child: Column(
+  // Pinta la imagen de cómo va a quedar en grande
+  Widget _construirTarjetaVistaPrevia() {
+    return _construirTarjetaBlanca(
+      relleno: EdgeInsets.zero,
+      hijo: Column(
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: Image.network(
-              rasterHttpUrlOrPlaceholder(_previewImageUrl),
+              urlRasterHttpOPlaceholder(_urlImagenPrevia),
               height: 180,
               width: double.infinity,
               fit: BoxFit.cover,
+              // Si la URL que meten está rota, ponemos un cuadrao gris chusquero
               errorBuilder: (context, error, stackTrace) => Container(
                 height: 180,
                 color: Colors.grey[300],
@@ -161,23 +164,24 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     );
   }
 
-  Widget _buildUrlInputCard() {
-    return _buildWhiteCard(
-      child: Column(
+  // La caja de texto gigante para que el usuario pegue lo del portapapeles
+  Widget _construirTarjetaCajaUrl() {
+    return _construirTarjetaBlanca(
+      hijo: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(
+          _construirCabeceraSeccion(
             Icons.image_outlined,
             'URL de la imagen',
             Colors.blue,
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: _urlController,
-            onChanged: (value) {
-              if (value.isNotEmpty) {
+            controller: _controladorUrl,
+            onChanged: (valor) {
+              if (valor.isNotEmpty) {
                 setState(() {
-                  _previewImageUrl = value;
+                  _urlImagenPrevia = valor;
                 });
               }
             },
@@ -205,12 +209,13 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     );
   }
 
-  Widget _buildSuggestionsCard() {
-    return _buildWhiteCard(
-      child: Column(
+  // Tres fotitos en horizontal para la gente vaga
+  Widget _construirTarjetaSugerencias() {
+    return _construirTarjetaBlanca(
+      hijo: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(
+          _construirCabeceraSeccion(
             Icons.search,
             'Sugerencias',
             Colors.purple,
@@ -225,16 +230,17 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
             height: 90,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _suggestions.length,
+              itemCount: _sugerencias.length,
               separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                final url = _suggestions[index];
-                final isSelected = url == _previewImageUrl;
+                final url = _sugerencias[index];
+                final estaSeleccionada = url == _urlImagenPrevia;
                 return GestureDetector(
-                  onTap: () => _updatePreview(url),
+                  onTap: () => _actualizarVistaPrevia(url),
                   child: Container(
                     decoration: BoxDecoration(
-                      border: isSelected
+                      // Borde gordito si está seleccionada
+                      border: estaSeleccionada
                           ? Border.all(
                               color: Theme.of(context).primaryColor,
                               width: 3,
@@ -245,7 +251,7 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(9),
                       child: Image.network(
-                        rasterHttpUrlOrPlaceholder(url),
+                        urlRasterHttpOPlaceholder(url),
                         width: 90,
                         height: 90,
                         fit: BoxFit.cover,
@@ -265,14 +271,15 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     );
   }
 
-  Widget _buildActions() {
+  // Guardar o a la verga
+  Widget _construirBotones() {
     return Column(
       children: [
         SizedBox(
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: _saveImage,
+            onPressed: _guardarImagen,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1877F2),
               foregroundColor: Colors.white,
@@ -313,7 +320,8 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     );
   }
 
-  Widget _buildHintCard() {
+  // Cajita azul explicativa abajo del todo
+  Widget _construirTarjetaPista() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -328,7 +336,7 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Esta imagen se mostrará como encabezado para todos los tickets de ${widget.storeName}.',
+              'Esta imagen se mostrará como encabezado para todos los tickets de ${widget.nombreComercio}.',
               style: TextStyle(
                 color: Colors.blue[800],
                 fontSize: 14,
@@ -340,11 +348,11 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     );
   }
 
-  /// Plantilla de tarjeta blanca reutilizada en esta pantalla.
-  Widget _buildWhiteCard({required Widget child, EdgeInsetsGeometry? padding}) {
+  // Código reutilizable para que todo tenga el mismo fondo blanco redondito con sombra 
+  Widget _construirTarjetaBlanca({required Widget hijo, EdgeInsetsGeometry? relleno}) {
     return Container(
       width: double.infinity,
-      padding: padding ?? const EdgeInsets.all(20),
+      padding: relleno ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -356,12 +364,12 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
           ),
         ],
       ),
-      child: child,
+      child: hijo,
     );
   }
 
-  /// Encabezado de sección con icono de color.
-  Widget _buildSectionHeader(IconData icon, String title, Color color) {
+  // Título de la tarjeta con su iconito mono al lado
+  Widget _construirCabeceraSeccion(IconData icono, String titulo, Color color) {
     return Row(
       children: [
         Container(
@@ -370,11 +378,11 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
             color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(icono, color: color, size: 20),
         ),
         const SizedBox(width: 12),
         Text(
-          title,
+          titulo,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -385,4 +393,3 @@ class _EditStoreImageScreenState extends State<EditStoreImageScreen> {
     );
   }
 }
-

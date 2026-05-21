@@ -4,44 +4,53 @@ import '../../../core/utils/raster_image_url.dart';
 import '../models/ticket.dart';
 import '../screens/ticket_detail_screen.dart';
 
-/// Tarjeta limpia y premium para mostrar un Ticket individual.
-/// @author Luis Bermeo
-class TicketStoreCard extends StatelessWidget {
-  const TicketStoreCard({
+/*
+ * ¿Qué hace este archivo?
+ * Esta es la tarjetita individual de cada ticket. 
+ * Tiene un diseño súper limpio para que el usuario pueda ver rápido 
+ * lo que compró, cuándo y cuánto costó. Y si está a punto de caducar
+ * la garantía, ¡le pone el borde rojo para avisar!
+ */
+class TarjetaComercioTicket extends StatelessWidget {
+  const TarjetaComercioTicket({
     super.key,
     required this.ticket,
-    required this.onEditPressed,
-    this.onDeleted,
+    required this.alPulsarEditar,
+    this.alEliminar,
   });
 
   final Ticket ticket;
-  final VoidCallback onEditPressed;
-  final VoidCallback? onDeleted;
+  final VoidCallback alPulsarEditar;
+  final VoidCallback? alEliminar;
 
   @override
   Widget build(BuildContext context) {
-    final bool expiring = ticket.isExpiringSoon;
+    // Comprobamos si la garantía de este ticket está en las últimas
+    final bool caducaPronto = ticket.estaApuntoDeCaducar;
     
     return GestureDetector(
       onTap: () async {
-        final result = await Navigator.push<bool>(
+        // Al tocar el ticket nos vamos a ver todos los detalles (foto en grande, etc)
+        final resultado = await Navigator.push<bool>(
           context,
           MaterialPageRoute<bool>(
-            builder: (context) => TicketDetailScreen(ticket: ticket),
+            builder: (context) => PantallaDetalleTicket(ticket: ticket), // Lo traduciremos luego
           ),
         );
-        if (result == true && onDeleted != null) {
-          onDeleted!();
+        // Si venimos de vuelta y el ticket se ha borrado en la otra pantalla, avisamos para refrescar
+        if (resultado == true && alEliminar != null) {
+          alEliminar!();
         }
       },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: expiring ? Border.all(color: Colors.redAccent, width: 2) : null,
+          // Borde rojito de advertencia si la garantía vuela
+          border: caducaPronto ? Border.all(color: Colors.redAccent, width: 2) : null,
           boxShadow: [
             BoxShadow(
-              color: expiring ? Colors.redAccent.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.04),
+              color: caducaPronto ? Colors.redAccent.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.04),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -49,27 +58,28 @@ class TicketStoreCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            _buildHeaderImage(context),
-            _buildTicketInfoRow(context, expiring),
+            _construirImagenCabecera(context),
+            _construirFilaInfoTicket(context, caducaPronto),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderImage(BuildContext context) {
-    final safeUrl = rasterHttpUrlOrPlaceholder(ticket.imageUrl);
+  // Montamos la foto del ticket arriba del todo con un degradado negro para que se lean las letras blancas
+  Widget _construirImagenCabecera(BuildContext context) {
+    final urlSegura = urlRasterHttpOPlaceholder(ticket.urlImagen);
     return Stack(
       children: [
         ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: ShaderMask(
-            shaderCallback: (rect) {
+            shaderCallback: (rectangulo) {
               return const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [Colors.black54, Colors.transparent],
-              ).createShader(rect);
+              ).createShader(rectangulo);
             },
             blendMode: BlendMode.darken,
             child: Container(
@@ -77,7 +87,7 @@ class TicketStoreCard extends StatelessWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: NetworkImage(safeUrl),
+                  image: NetworkImage(urlSegura),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -90,7 +100,7 @@ class TicketStoreCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                ticket.storeName,
+                ticket.nombreComercio,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -98,12 +108,13 @@ class TicketStoreCard extends StatelessWidget {
                   shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
                 ),
               ),
+              // El botoncito de editar (el lapiz chiquito)
               Material(
                 color: Colors.white,
                 shape: const CircleBorder(),
                 child: InkWell(
                   customBorder: const CircleBorder(),
-                  onTap: onEditPressed,
+                  onTap: alPulsarEditar,
                   child: const Padding(
                     padding: EdgeInsets.all(8),
                     child: Icon(
@@ -121,7 +132,8 @@ class TicketStoreCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTicketInfoRow(BuildContext context, bool expiring) {
+  // La zona de abajo de la tarjeta donde ponemos la pasta, la fecha y si la garantía está pelada
+  Widget _construirFilaInfoTicket(BuildContext context, bool caducaPronto) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -141,7 +153,7 @@ class TicketStoreCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      ticket.price,
+                      ticket.precio,
                       style: TextStyle(
                         color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.bold,
@@ -150,7 +162,7 @@ class TicketStoreCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      ticket.formattedDate,
+                      ticket.fechaFormateada,
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 13,
@@ -161,7 +173,8 @@ class TicketStoreCard extends StatelessWidget {
               ),
             ],
           ),
-          if (expiring)
+          // Si quedan menos de 30 días, sacamos este cartelito rojo chillón
+          if (caducaPronto)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
@@ -188,4 +201,3 @@ class TicketStoreCard extends StatelessWidget {
     );
   }
 }
-

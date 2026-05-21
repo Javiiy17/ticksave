@@ -2,36 +2,38 @@ import 'package:flutter/material.dart';
 
 import 'app_currency.dart';
 
-/// Preferencias globales de la app (idioma, divisa).
-///
-/// Notifica a los oyentes al cambiar; [TickSaveApp] envuelve [MaterialApp] en un
-/// [ListenableBuilder] para aplicar [locale] y reconstruir la UI.
-/// @author Javier Abellán
-class AppSettingsController extends ChangeNotifier {
-  AppSettingsController({
-    Locale locale = const Locale('es'),
-    AppCurrency currency = AppCurrency.eur,
-  })  : _locale = locale,
-        _currency = currency;
+/*
+ * ¿Qué hace este archivo?
+ * Aquí guardamos las preferencias del usuario para toda la app (como el idioma 
+ * o si usa Euros o Dólares). Cuando cambia algo, esto avisa a todas las pantallas 
+ * para que se repinten y se actualicen al instante.
+ */
+class ControladorAjustesApp extends ChangeNotifier {
+  ControladorAjustesApp({
+    Locale idioma = const Locale('es'),
+    MonedaApp moneda = MonedaApp.eur,
+  })  : _idioma = idioma,
+        _moneda = moneda;
 
-  Locale _locale;
-  AppCurrency _currency;
+  Locale _idioma;
+  MonedaApp _moneda;
 
-  Locale get locale => _locale;
-  AppCurrency get currency => _currency;
-  String get currencySymbol => _currency.symbol;
+  Locale get idioma => _idioma;
+  MonedaApp get moneda => _moneda;
+  String get simboloMoneda => _moneda.simbolo;
 
-  bool get isEnglish => _locale.languageCode == 'en';
+  // Un atajo rápido para saber si el usuario lo tiene puesto en inglés
+  bool get esIngles => _idioma.languageCode == 'en';
 
-  void setLocale(Locale value) {
-    if (_locale == value) return;
-    _locale = value;
-    notifyListeners();
+  void cambiarIdioma(Locale nuevoIdioma) {
+    if (_idioma == nuevoIdioma) return; // Si es el mismo ni nos molestamos
+    _idioma = nuevoIdioma;
+    notifyListeners(); // ¡Eh, que hemos cambiado el idioma, que se actualice todo!
   }
 
-  void setCurrency(AppCurrency value) {
-    if (_currency == value) return;
-    _currency = value;
+  void cambiarMoneda(MonedaApp nuevaMoneda) {
+    if (_moneda == nuevaMoneda) return;
+    _moneda = nuevaMoneda;
     notifyListeners();
   }
 }

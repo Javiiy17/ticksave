@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// Tema global de la aplicación TickSave.
-///
-/// Objetivos del diseño (Dopamina Visual):
-/// - **Material 3** activado.
-/// - **Modo oscuro profundo** como base (Dark Purple).
-/// - **Acento Rosa y Púrpura** para elementos interactivos.
-/// - Tarjetas y controles con **bordes ultra redondeados (25.0)** y estilo premium.
-/// @author Luis Bermeo
-final ThemeData appTheme = ThemeData(
+/*
+ * ¿Qué hace este archivo?
+ * Aquí definimos los colores de toda la app (el rosa chicle, el morado oscuro...).
+ * Así, si un día decidimos que la app sea verde, solo cambiamos este archivo
+ * y se cambia en todas las pantallas por arte de magia.
+ */
+final ThemeData temaApp = ThemeData(
   useMaterial3: true,
   brightness: Brightness.dark,
   // Tipografía potente (intentará usar la del sistema, pero bien ajustada)

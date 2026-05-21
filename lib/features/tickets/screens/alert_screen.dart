@@ -2,110 +2,114 @@ import 'package:add_2_calendar/add_2_calendar.dart';
 import 'package:flutter/material.dart';
 import '../../../core/l10n/app_strings.dart';
 
-/// Pantalla para configurar una alerta de vencimiento de garantía.
-///
-/// La idea es que el usuario elija la fecha de vencimiento y los días previos.
-/// Actualmente controla la interfaz de configuración.
-/// @author Luis Bermeo
-class AlertScreen extends StatefulWidget {
-  const AlertScreen({
+/*
+ * ¿Qué hace este archivo?
+ * Aquí gestionamos las alertas del calendario. Cuando a un ticket se le va a
+ * acabar la garantía, desde esta pantalla podemos meter un evento directamente
+ * en el calendario del móvil (Google Calendar, Apple, etc) para que pite
+ * y nos avise con tiempo. ¡Así no perdemos dinero!
+ */
+class PantallaAlerta extends StatefulWidget {
+  const PantallaAlerta({
     super.key,
-    required this.storeName,
-    required this.purchaseDate,
+    required this.nombreComercio,
+    required this.fechaCompra,
   });
 
-  final String storeName;
-  final String purchaseDate;
+  final String nombreComercio;
+  final String fechaCompra;
 
   @override
-  State<AlertScreen> createState() => _AlertScreenState();
+  State<PantallaAlerta> createState() => _EstadoPantallaAlerta();
 }
 
-class _AlertScreenState extends State<AlertScreen> {
-  final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _daysController = TextEditingController(text: '30');
+class _EstadoPantallaAlerta extends State<PantallaAlerta> {
+  final TextEditingController _controladorFecha = TextEditingController();
+  final TextEditingController _controladorDias = TextEditingController(text: '30');
 
-  int _selectedDays = 30;
+  int _diasSeleccionados = 30;
 
   @override
   void dispose() {
-    _dateController.dispose();
-    _daysController.dispose();
+    _controladorFecha.dispose();
+    _controladorDias.dispose();
     super.dispose();
   }
 
-  void _selectSuggestedOneYear() {
-    final now = DateTime.now();
-    final nextYear = now.add(const Duration(days: 365));
-    _dateController.text = '${nextYear.day}/${nextYear.month}/${nextYear.year}';
+  // Te autocompleta la fecha para un año clavado desde hoy
+  void _seleccionarUnAnoSugerido() {
+    final ahora = DateTime.now();
+    final elAnoQueViene = ahora.add(const Duration(days: 365));
+    _controladorFecha.text = '${elAnoQueViene.day}/${elAnoQueViene.month}/${elAnoQueViene.year}';
     setState(() {});
   }
 
-  Future<void> _pickDate() async {
-    final pickedDate = await showDatePicker(
+  // Abre el selector de fechas de Android/iOS
+  Future<void> _elegirFecha() async {
+    final fechaElegida = await showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 365)),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
 
-    if (pickedDate == null) return;
+    if (fechaElegida == null) return;
 
-    _dateController.text =
-        '${pickedDate.day}/${pickedDate.month}/${pickedDate.year}';
+    _controladorFecha.text =
+        '${fechaElegida.day}/${fechaElegida.month}/${fechaElegida.year}';
     setState(() {});
   }
 
-  Future<void> _saveAlert() async {
-    final parts = _dateController.text.split('/');
-    if (parts.length != 3) {
+  // La magia ocurre aquí: crea un evento y lo tira pa'l calendario nativo
+  Future<void> _guardarAlerta() async {
+    final trozos = _controladorFecha.text.split('/');
+    if (trozos.length != 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Fecha inválida', style: TextStyle(color: Colors.white)),
+        const SnackBar(
+          content: Text('Fecha inválida', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.redAccent,
         ),
       );
       return;
     }
 
-    final day = int.tryParse(parts[0]) ?? 1;
-    final month = int.tryParse(parts[1]) ?? 1;
-    final year = int.tryParse(parts[2]) ?? 2024;
-    final expirationDate = DateTime(year, month, day, 10, 0); // Lo ponemos a las 10 de la mañana
+    final dia = int.tryParse(trozos[0]) ?? 1;
+    final mes = int.tryParse(trozos[1]) ?? 1;
+    final ano = int.tryParse(trozos[2]) ?? 2024;
+    final fechaExpiracion = DateTime(ano, mes, dia, 10, 0); // Lo ponemos a las 10 de la mañana que ya estamos despiertos
     
-    // Alarma predeterminada basada en los días seleccionados.
-    // iOSParams lo pilla bien. En Android depende de la app de calendario.
-    final reminderDuration = Duration(days: _selectedDays);
+    // Alarma predeterminada basada en los días seleccionados
+    final duracionAviso = Duration(days: _diasSeleccionados);
 
-    final Event event = Event(
-      title: 'Vencimiento Garantía: ${widget.storeName}',
-      description: 'Recordatorio de fin de garantía para la compra realizada el ${widget.purchaseDate} en ${widget.storeName}. Generado por TickSave.',
-      startDate: expirationDate,
-      endDate: expirationDate.add(const Duration(hours: 1)),
+    final Event evento = Event(
+      title: 'Vencimiento Garantía: ${widget.nombreComercio}',
+      description: 'Recordatorio de fin de garantía para la compra realizada el ${widget.fechaCompra} en ${widget.nombreComercio}. Generado por TickSave.',
+      startDate: fechaExpiracion,
+      endDate: fechaExpiracion.add(const Duration(hours: 1)),
       allDay: true,
       iosParams: IOSParams(
-        reminder: reminderDuration, 
+        reminder: duracionAviso, 
       ),
       androidParams: const AndroidParams(
         emailInvites: [], // Evita invitar a nadie sin querer
       ),
     );
 
-    // Lanza la aplicación de calendario nativa
+    // Lanza la aplicación de calendario que tengas instalada
     try {
-      final result = await Add2Calendar.addEvent2Cal(event);
+      final resultado = await Add2Calendar.addEvent2Cal(evento);
 
       if (mounted) {
-        final messenger = ScaffoldMessenger.of(context);
-        Navigator.pop(context); // Volver a la pantalla anterior
-        if (result) {
-          messenger.showSnackBar(
+        final mensajero = ScaffoldMessenger.of(context);
+        Navigator.pop(context); // Volvemos pa'trás
+        if (resultado) {
+          mensajero.showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
               backgroundColor: const Color(0xFF111827),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               content: Text(
-                AppStrings.of(context).alertSavedSuccess,
+                TextosApp.de(context).alertaGuardadaExito,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,
@@ -115,7 +119,7 @@ class _AlertScreenState extends State<AlertScreen> {
             ),
           );
         } else {
-          messenger.showSnackBar(
+          mensajero.showSnackBar(
             const SnackBar(
               content: Text('No se pudo abrir el calendario', style: TextStyle(color: Colors.white)),
               backgroundColor: Colors.redAccent,
@@ -127,8 +131,8 @@ class _AlertScreenState extends State<AlertScreen> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: No se pudo añadir la alarma.', style: const TextStyle(color: Colors.white)),
+          const SnackBar(
+            content: Text('Error: No se pudo añadir la alarma.', style: TextStyle(color: Colors.white)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -143,7 +147,7 @@ class _AlertScreenState extends State<AlertScreen> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
         title: Text(
-          AppStrings.of(context).configureAlert,
+          TextosApp.de(context).configurarAlerta,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -155,15 +159,15 @@ class _AlertScreenState extends State<AlertScreen> {
       ),
       body: Column(
         children: [
-          _buildSummaryCard(),
-          Expanded(child: _buildWhiteBody()),
+          _construirTarjetaResumen(),
+          Expanded(child: _construirCuerpoBlanco()),
         ],
       ),
     );
   }
 
-  /// Tarjeta superior que resume a qué ticket se le está creando la alerta.
-  Widget _buildSummaryCard() {
+  // Tarjeta de arriba para que sepas a qué ticket le estás poniendo la alarma
+  Widget _construirTarjetaResumen() {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Container(
@@ -177,7 +181,7 @@ class _AlertScreenState extends State<AlertScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.storeName,
+              widget.nombreComercio,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -186,7 +190,7 @@ class _AlertScreenState extends State<AlertScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              AppStrings.of(context).purchasedOn(widget.purchaseDate),
+              TextosApp.de(context).compradoEl(widget.fechaCompra),
               style: const TextStyle(color: Colors.black),
             ),
           ],
@@ -195,8 +199,8 @@ class _AlertScreenState extends State<AlertScreen> {
     );
   }
 
-  /// Cuerpo blanco inferior con fecha de vencimiento y días de aviso.
-  Widget _buildWhiteBody() {
+  // La parte de abajo, blanca con los formularios
+  Widget _construirCuerpoBlanco() {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -210,13 +214,13 @@ class _AlertScreenState extends State<AlertScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            _buildExpirationSection(),
+            _construirSeccionCaducidad(),
             const SizedBox(height: 20),
-            _buildDaysSection(),
+            _construirSeccionDias(),
             const SizedBox(height: 30),
-            _buildSaveButton(),
+            _construirBotonGuardar(),
             const SizedBox(height: 20),
-            _buildInfoHint(),
+            _construirPistaInformacion(),
             const SizedBox(height: 30),
           ],
         ),
@@ -224,7 +228,7 @@ class _AlertScreenState extends State<AlertScreen> {
     );
   }
 
-  Widget _buildExpirationSection() {
+  Widget _construirSeccionCaducidad() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -243,10 +247,10 @@ class _AlertScreenState extends State<AlertScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.calendar_month_outlined, color: Colors.blue),
-              SizedBox(width: 8),
+              const Icon(Icons.calendar_month_outlined, color: Colors.blue),
+              const SizedBox(width: 8),
               Text(
-                AppStrings.of(context).expirationDate,
+                TextosApp.de(context).fechaVencimiento,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -257,9 +261,9 @@ class _AlertScreenState extends State<AlertScreen> {
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: _dateController,
+            controller: _controladorFecha,
             readOnly: true,
-            onTap: _pickDate,
+            onTap: _elegirFecha,
             style: const TextStyle(color: Color(0xFF111827)),
             decoration: InputDecoration(
               hintText: 'dd/mm/aaaa',
@@ -273,15 +277,15 @@ class _AlertScreenState extends State<AlertScreen> {
             ),
           ),
           TextButton(
-            onPressed: _selectSuggestedOneYear,
-            child: Text(AppStrings.of(context).useSuggestedDate),
+            onPressed: _seleccionarUnAnoSugerido,
+            child: Text(TextosApp.de(context).usarFechaSugerida),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDaysSection() {
+  Widget _construirSeccionDias() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -300,10 +304,10 @@ class _AlertScreenState extends State<AlertScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.notifications_active_outlined, color: Colors.orange),
-              SizedBox(width: 8),
+              const Icon(Icons.notifications_active_outlined, color: Colors.orange),
+              const SizedBox(width: 8),
               Text(
-                AppStrings.of(context).noticeDays,
+                TextosApp.de(context).diasAviso,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -314,18 +318,18 @@ class _AlertScreenState extends State<AlertScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            AppStrings.of(context).noticeDaysHint,
+            TextosApp.de(context).pistaDiasAviso,
             style: const TextStyle(color: Colors.black, fontSize: 13),
           ),
           const SizedBox(height: 16),
           TextField(
-            controller: _daysController,
+            controller: _controladorDias,
             keyboardType: TextInputType.number,
             style: const TextStyle(color: Color(0xFF111827)),
-            onChanged: (value) {
-              final parsed = int.tryParse(value);
+            onChanged: (valor) {
+              final numero = int.tryParse(valor);
               setState(() {
-                _selectedDays = parsed ?? 0;
+                _diasSeleccionados = numero ?? 0;
               });
             },
             decoration: InputDecoration(
@@ -341,10 +345,10 @@ class _AlertScreenState extends State<AlertScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildDayChip(7),
-              _buildDayChip(15),
-              _buildDayChip(30),
-              _buildDayChip(60),
+              _construirPildoraDia(7),
+              _construirPildoraDia(15),
+              _construirPildoraDia(30),
+              _construirPildoraDia(60),
             ],
           ),
         ],
@@ -352,12 +356,12 @@ class _AlertScreenState extends State<AlertScreen> {
     );
   }
 
-  Widget _buildSaveButton() {
+  Widget _construirBotonGuardar() {
     return SizedBox(
       width: double.infinity,
       height: 55,
       child: ElevatedButton(
-        onPressed: _saveAlert,
+        onPressed: _guardarAlerta,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1877F2),
           foregroundColor: Colors.white,
@@ -368,18 +372,18 @@ class _AlertScreenState extends State<AlertScreen> {
           shadowColor: const Color(0xFF1877F2).withValues(alpha: 0.4),
         ),
         child: Text(
-          AppStrings.of(context).saveAlertButton,
+          TextosApp.de(context).botonGuardarAlerta,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );
   }
 
-  Widget _buildInfoHint() {
+  Widget _construirPistaInformacion() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B), // Dark slate/blue for contrast
+        color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.1),
@@ -391,7 +395,7 @@ class _AlertScreenState extends State<AlertScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              AppStrings.of(context).noticeInfoHint,
+              TextosApp.de(context).pistaInfoAviso,
               style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ),
@@ -400,26 +404,26 @@ class _AlertScreenState extends State<AlertScreen> {
     );
   }
 
-  /// Botón tipo "chip" que permite seleccionar rápidamente un número de días.
-  Widget _buildDayChip(int days) {
-    final isSelected = _selectedDays == days;
+  // Las cajitas rápidas para elegir 7, 15 o 30 días
+  Widget _construirPildoraDia(int dias) {
+    final estaSeleccionado = _diasSeleccionados == dias;
     return GestureDetector(
       onTap: () {
         setState(() {
-          _selectedDays = days;
-          _daysController.text = days.toString();
+          _diasSeleccionados = dias;
+          _controladorDias.text = dias.toString();
         });
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1877F2) : Colors.grey[200],
+          color: estaSeleccionado ? const Color(0xFF1877F2) : Colors.grey[200],
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
-          AppStrings.of(context).daysX(days),
+          TextosApp.de(context).diasX(dias),
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF111827),
+            color: estaSeleccionado ? Colors.white : const Color(0xFF111827),
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
@@ -428,4 +432,3 @@ class _AlertScreenState extends State<AlertScreen> {
     );
   }
 }
-

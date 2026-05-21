@@ -1,82 +1,89 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-/// Modelo de datos que representa un Ticket de compra individual.
-/// Administra la conversión de datos y la lógica de fechas y garantías.
-/// @author Javier Abellán
+/*
+ * ¿Qué hace este archivo?
+ * Aquí es donde definimos qué es exactamente un "Ticket" para nuestra aplicación.
+ * Javi y yo hemos creado esta clase para moldear los datos que vienen de la base de datos
+ * y convertirlos en objetos que podamos usar fácilmente en Flutter. Básicamente es el molde 
+ * de nuestros tickets de compra, para que no falte ni un solo dato.
+ */
 class Ticket {
   Ticket({
     this.id,
-    this.userId,
-    required this.storeName,
-    required this.price,
-    required this.purchaseDate,
-    required this.imageUrl,
+    this.idUsuario,
+    required this.nombreComercio,
+    required this.precio,
+    required this.fechaCompra,
+    required this.urlImagen,
     this.categoria = 'General',
-    this.scannedCode,
-    this.barcodeFormat,
+    this.codigoEscaneado,
+    this.formatoCodigo,
   });
 
   String? id;
-  String? userId;
-  String storeName;
-  String price;
-  DateTime purchaseDate;
-  String imageUrl;
+  String? idUsuario;
+  String nombreComercio;
+  String precio;
+  DateTime fechaCompra;
+  String urlImagen;
   String categoria;
-  String? scannedCode;
-  String? barcodeFormat;
+  String? codigoEscaneado;
+  String? formatoCodigo;
 
-  /// Devuelve la fecha de fin de garantía (3 años después de la compra)
-  DateTime get expirationDate {
+  // Calculamos cuándo se acaba la garantía. Por ley suelen ser 3 años desde que lo compras.
+  DateTime get fechaGarantia {
     return DateTime(
-      purchaseDate.year + 3,
-      purchaseDate.month,
-      purchaseDate.day,
+      fechaCompra.year + 3,
+      fechaCompra.month,
+      fechaCompra.day,
     );
   }
 
-  /// Devuelve true si la garantía expira en menos de 30 días respecto a hoy
-  bool get isExpiringSoon {
-    final now = DateTime.now();
-    final difference = expirationDate.difference(now).inDays;
-    return difference >= 0 && difference <= 30;
+  // Comprobamos si la garantía está a puntito de caducar (menos de 30 días).
+  bool get estaApuntoDeCaducar {
+    final ahora = DateTime.now();
+    final diferenciaDias = fechaGarantia.difference(ahora).inDays;
+    return diferenciaDias >= 0 && diferenciaDias <= 30;
   }
   
-  /// Formateo amigable de la fecha
-  String get formattedDate {
-    return DateFormat('dd/MM/yyyy').format(purchaseDate);
+  // Para mostrar la fecha bonita en la pantalla (día/mes/año).
+  String get fechaFormateada {
+    return DateFormat('dd/MM/yyyy').format(fechaCompra);
   }
 
-  /// Crea un objeto a partir del documento de Firebase
-  factory Ticket.fromMap(Map<String, dynamic> data, String documentId) {
+  // Esta función coge los datos en bruto de Firebase (que vienen como un diccionario o mapa)
+  // y nos los transforma en un objeto Ticket de verdad.
+  factory Ticket.desdeMapa(Map<String, dynamic> datos, String idDocumento) {
     return Ticket(
-      id: documentId,
-      userId: data['userId'] as String?,
-      storeName: data['comercio'] as String? ?? 'Desconocido',
-      price: data['precio'] as String? ?? '0 €',
-      purchaseDate: data['fecha_compra'] != null 
-          ? (data['fecha_compra'] as Timestamp).toDate() 
+      id: idDocumento,
+      // Ojo: el key 'userId' se queda en inglés porque así está guardado en Firebase
+      idUsuario: datos['userId'] as String?,
+      nombreComercio: datos['comercio'] as String? ?? 'Desconocido',
+      precio: datos['precio'] as String? ?? '0 €',
+      fechaCompra: datos['fecha_compra'] != null 
+          ? (datos['fecha_compra'] as Timestamp).toDate() 
           : DateTime.now(),
-      imageUrl: data['url_imagen'] as String? ?? '',
-      categoria: data['categoria'] as String? ?? 'General',
-      scannedCode: data['codigo_escaneado'] as String?,
-      barcodeFormat: data['formato_codigo'] as String?,
+      urlImagen: datos['url_imagen'] as String? ?? '',
+      categoria: datos['categoria'] as String? ?? 'General',
+      codigoEscaneado: datos['codigo_escaneado'] as String?,
+      formatoCodigo: datos['formato_codigo'] as String?,
     );
   }
 
-  /// Pasa este objeto a un mapa para guardarlo en Firebase
-  Map<String, dynamic> toMap() {
+  // Y esta hace lo contrario: coge nuestro objeto Ticket y lo convierte en un mapa
+  // para que Firebase se lo pueda tragar sin problemas.
+  Map<String, dynamic> aMapa() {
     return {
-      'userId': userId,
-      'comercio': storeName,
-      'precio': price,
-      'fecha_compra': Timestamp.fromDate(purchaseDate),
-      'fecha_garantia': Timestamp.fromDate(expirationDate),
-      'url_imagen': imageUrl,
+      'userId': idUsuario, // Mantenemos el key original en inglés para Firebase
+      'comercio': nombreComercio,
+      'precio': precio,
+      'fecha_compra': Timestamp.fromDate(fechaCompra),
+      'fecha_garantia': Timestamp.fromDate(fechaGarantia),
+      'url_imagen': urlImagen,
       'categoria': categoria,
-      'codigo_escaneado': scannedCode,
-      'formato_codigo': barcodeFormat,
+      'codigo_escaneado': codigoEscaneado,
+      'formato_codigo': formatoCodigo,
       'modificado_en': FieldValue.serverTimestamp(),
     };
   }

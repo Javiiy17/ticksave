@@ -14,188 +14,194 @@ import '../services/ticket_service.dart';
 import 'alert_screen.dart';
 import 'edit_ticket_screen.dart';
 
-/// Pantalla que te muestra el detalle del ticket.
-///
-/// Le pasamos el [Ticket] desde la lista para enseñarlo y poder editarlo.
-/// @author Luis Bermeo
-class TicketDetailScreen extends StatefulWidget {
-  const TicketDetailScreen({
+/*
+ * ¿Qué hace este archivo?
+ * Cuando pulsas encima de un ticket, se abre esta pantalla enorme. 
+ * Aquí ves la foto del recibo en grande, cuánto te costó, si tienes alarma puesta 
+ * y te dejamos botoncitos para compartirlo por WhatsApp, editarlo si hay algún fallo, o borrarlo.
+ */
+class PantallaDetalleTicket extends StatefulWidget {
+  const PantallaDetalleTicket({
     super.key,
     required this.ticket,
-    this.scannedCode,
-    this.barcodeFormatLabel,
-    this.sourceTicket,
-    this.sourceLineIndex = 0,
+    this.codigoEscaneado,
+    this.etiquetaFormatoCodigo,
+    this.ticketOrigen,
+    this.indiceLineaOrigen = 0,
   });
 
   final Ticket ticket;
 
-  /// Valor que pillamos del código QR o de barras si vienes del escáner.
-  final String? scannedCode;
+  // Valor que pillamos del código QR o de barras si vienes de la cámara
+  final String? codigoEscaneado;
 
-  /// Tipo de código de barras (ej. EAN-13), por si hace falta.
-  final String? barcodeFormatLabel;
+  // Tipo de código (por ejemplo, 'EAN-13' o 'QR')
+  final String? etiquetaFormatoCodigo;
 
-  /// El ticket original que estamos tocando, para no liar los IDs.
-  final Ticket? sourceTicket;
+  // El ticket original por si hacemos cambios, no fastidiarlo
+  final Ticket? ticketOrigen;
 
-  /// Por la parte de código que hizo Javi, nos guardamos el índice.
-  final int sourceLineIndex;
+  // Una cosilla técnica para saber en qué parte de la lista estaba
+  final int indiceLineaOrigen;
 
   @override
-  State<TicketDetailScreen> createState() => _TicketDetailScreenState();
+  State<PantallaDetalleTicket> createState() => _EstadoPantallaDetalleTicket();
 }
 
-class _TicketDetailScreenState extends State<TicketDetailScreen> {
-  late String _storeName;
-  late String _date;
-  late String _price;
-  late String _imageUrl;
+class _EstadoPantallaDetalleTicket extends State<PantallaDetalleTicket> {
+  late String _nombreComercio;
+  late String _fecha;
+  late String _precio;
+  late String _urlImagen;
   late String _categoria;
-  String? _scannedCode;
-  String? _barcodeFormatLabel;
+  String? _codigoEscaneado;
+  String? _etiquetaFormatoCodigo;
 
   @override
   void initState() {
     super.initState();
-    _storeName = widget.ticket.storeName;
-    _date = widget.ticket.formattedDate;
-    _price = widget.ticket.price;
-    _imageUrl = widget.ticket.imageUrl;
+    // Pillamos los datos iniciales al abrir la pantalla
+    _nombreComercio = widget.ticket.nombreComercio;
+    _fecha = widget.ticket.fechaFormateada;
+    _precio = widget.ticket.precio;
+    _urlImagen = widget.ticket.urlImagen;
     _categoria = widget.ticket.categoria;
-    _scannedCode = widget.ticket.scannedCode ?? widget.scannedCode;
-    _barcodeFormatLabel = widget.ticket.barcodeFormat ?? widget.barcodeFormatLabel;
+    _codigoEscaneado = widget.ticket.codigoEscaneado ?? widget.codigoEscaneado;
+    _etiquetaFormatoCodigo = widget.ticket.formatoCodigo ?? widget.etiquetaFormatoCodigo;
   }
 
-  void _openAlertScreen() {
+  // Vamos a la pantalla de crear la alarma en el calendario
+  void _abrirPantallaAlerta() {
     Navigator.push<void>(
       context,
       MaterialPageRoute<void>(
-        builder: (context) => AlertScreen(
-          storeName: _storeName,
-          purchaseDate: _date,
+        builder: (context) => PantallaAlerta(
+          nombreComercio: _nombreComercio,
+          fechaCompra: _fecha,
         ),
       ),
     );
   }
 
-  Future<void> _openEditTicket() async {
-    final result = await Navigator.push<EditTicketResult>(
+  // Si algún dato se ha leído mal del ticket, nos vamos a editarlo
+  Future<void> _abrirEditarTicket() async {
+    final resultado = await Navigator.push<ResultadoEditarTicket>(
       context,
-      MaterialPageRoute<EditTicketResult>(
-        builder: (context) => EditTicketScreen(
-          initialStoreName: _storeName,
-          initialDate: _date,
-          initialPrice: _price,
-          scannedCode: _scannedCode,
-          barcodeFormatLabel: _barcodeFormatLabel,
+      MaterialPageRoute<ResultadoEditarTicket>(
+        builder: (context) => PantallaEditarTicket( // Luego traducimos esta pantalla a PantallaEditarTicket
+          nombreComercioInicial: _nombreComercio,
+          fechaInicial: _fecha,
+          precioInicial: _precio,
+          codigoEscaneado: _codigoEscaneado,
+          formatoCodigoBarras: _etiquetaFormatoCodigo,
         ),
       ),
     );
 
-    if (!mounted || result == null) return;
+    if (!mounted || resultado == null) return;
 
+    // Cuando volvamos, actualizamos la vista con lo que haya cambiado el usuario
     setState(() {
-      _storeName = result.storeName;
-      _date = result.date;
-      _price = result.price;
+      _nombreComercio = resultado.nombreComercio;
+      _fecha = resultado.fecha;
+      _precio = resultado.precio;
     });
 
-    // Actualizamos el ticket local y lo mandamos a la nube
-    final t = widget.sourceTicket ?? (widget.ticket.id != null ? widget.ticket : null);
-    if (t != null) {
-      t.storeName = _storeName;
-      t.price = _price;
-      // Ojo: no estamos tocando la fecha aquí para no complicarlo mucho más
+    // Actualizamos el ticket de verdad y lo mandamos a Firebase a la velocidad de la luz
+    final ticketActualizar = widget.ticketOrigen ?? (widget.ticket.id != null ? widget.ticket : null);
+    if (ticketActualizar != null) {
+      ticketActualizar.nombreComercio = _nombreComercio;
+      ticketActualizar.precio = _precio;
       
-      // Que no se nos olvide subir esto a Firebase
-      await TicketService().updateTicket(t);
+      await ServicioTicket().actualizarTicket(ticketActualizar);
     }
   }
 
-  Future<void> _deleteTicket() async {
-    final t = AppStrings.of(context);
-    final confirm = await showDialog<bool>(
+  // ¡A tomar por saco el ticket!
+  Future<void> _eliminarTicket() async {
+    final textos = TextosApp.de(context);
+    final confirmacion = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF140A26),
-        title: Text(t.deleteTicketConfirmTitle, style: const TextStyle(color: Colors.white)),
-        content: Text(t.deleteTicketConfirmBody, style: const TextStyle(color: Colors.white70)),
+        title: Text(textos.tituloConfirmarEliminarTicket, style: const TextStyle(color: Colors.white)),
+        content: Text(textos.cuerpoConfirmarEliminarTicket, style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(t.cancel, style: const TextStyle(color: Colors.white70)),
+            child: Text(textos.cancelar, style: const TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(t.delete, style: const TextStyle(color: Colors.white)),
+            child: Text(textos.borrar, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
 
-    if (confirm == true) {
+    if (confirmacion == true) {
       if (widget.ticket.id != null) {
-        await TicketService().deleteTicket(widget.ticket.id!);
+        await ServicioTicket().eliminarTicket(widget.ticket.id!);
       }
-      if (mounted) Navigator.pop(context, true); // Go back to the previous screen
+      if (mounted) Navigator.pop(context, true); // Cerramos y avisamos de que lo hemos borrado
     }
   }
 
-  Future<void> _shareTicket() async {
-    final t = AppStrings.of(context);
-    final msg = t.shareTicketMessage(_storeName, _date, _price, code: _scannedCode);
+  // Compartir mola. Generamos la foto, el QR, y se lo mandamos a un colega por WhatsApp.
+  Future<void> _compartirTicket() async {
+    final textos = TextosApp.de(context);
+    final mensaje = textos.mensajeCompartirTicket(_nombreComercio, _fecha, _precio, codigo: _codigoEscaneado);
     
-    List<XFile> shareFiles = [];
+    List<XFile> archivosACompartir = [];
     
     try {
-      final tempDir = await getTemporaryDirectory();
+      final directorioTemp = await getTemporaryDirectory();
 
-      // 1. Imagen física del ticket
-      if (_imageUrl.isNotEmpty && _imageUrl.startsWith('http')) {
-        final res = await http.get(Uri.parse(rasterHttpUrlOrPlaceholder(_imageUrl)));
-        if (res.statusCode == 200) {
-          final file = File('${tempDir.path}/ticket_share.jpg');
-          await file.writeAsBytes(res.bodyBytes);
-          shareFiles.add(XFile(file.path));
+      // 1. Descargamos la imagen física del ticket
+      if (_urlImagen.isNotEmpty && _urlImagen.startsWith('http')) {
+        final respuesta = await http.get(Uri.parse(urlRasterHttpOPlaceholder(_urlImagen)));
+        if (respuesta.statusCode == 200) {
+          final archivo = File('${directorioTemp.path}/ticket_share.jpg');
+          await archivo.writeAsBytes(respuesta.bodyBytes);
+          archivosACompartir.add(XFile(archivo.path));
         }
       }
 
-      // 2. Imagen generada del formato (QR/BarCode)
-      if (_scannedCode != null && _scannedCode!.isNotEmpty) {
-        final isQr = _barcodeFormatLabel?.toLowerCase().contains('qr') == true;
-        final codeUrl = isQr 
-            ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$_scannedCode'
-            : 'https://barcodeapi.org/api/128/$_scannedCode';
+      // 2. Si tenía un código escaneado, le generamos la foto del QR/Barras al vuelo usando una API gratis
+      if (_codigoEscaneado != null && _codigoEscaneado!.isNotEmpty) {
+        final esQr = _etiquetaFormatoCodigo?.toLowerCase().contains('qr') == true;
+        final urlCodigo = esQr 
+            ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$_codigoEscaneado'
+            : 'https://barcodeapi.org/api/128/$_codigoEscaneado';
             
-        final resCode = await http.get(Uri.parse(codeUrl));
-        if (resCode.statusCode == 200) {
-          final codeFile = File('${tempDir.path}/code_share.png');
-          await codeFile.writeAsBytes(resCode.bodyBytes);
-          shareFiles.add(XFile(codeFile.path));
+        final respuestaCodigo = await http.get(Uri.parse(urlCodigo));
+        if (respuestaCodigo.statusCode == 200) {
+          final archivoCodigo = File('${directorioTemp.path}/code_share.png');
+          await archivoCodigo.writeAsBytes(respuestaCodigo.bodyBytes);
+          archivosACompartir.add(XFile(archivoCodigo.path));
         }
       }
     } catch (e) {
-      // Si falla la red, continuamos con modo solo-texto o lo que hayamos bajado
+      // Si explota el internet, mandamos el texto solo y listo.
     }
     
-    if (shareFiles.isNotEmpty) {
-      await Share.shareXFiles(shareFiles, text: msg);
+    if (archivosACompartir.isNotEmpty) {
+      await Share.shareXFiles(archivosACompartir, text: mensaje);
     } else {
-      await Share.share(msg);
+      await Share.share(mensaje);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = AppStrings.of(context);
+    final textos = TextosApp.de(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF090310), // Tema Pink & Purple base
+      backgroundColor: const Color(0xFF090310),
       appBar: AppBar(
         title: Text(
-          t.ticketDetailTitle,
+          textos.tituloDetalleTicket,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
@@ -203,24 +209,26 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            if (_scannedCode != null && _scannedCode!.isNotEmpty)
-              _buildBarcodeVisualizer()
+            // Si el ticket se leyó por escáner, enseñamos el dibujo del código. Si no, la foto del ticket físico
+            if (_codigoEscaneado != null && _codigoEscaneado!.isNotEmpty)
+              _construirVisorCodigoBarras()
             else
-              _buildHeaderImage(),
+              _construirImagenCabecera(),
             const SizedBox(height: 20),
-            _buildInfoCard(),
+            _construirTarjetaInformacion(),
             const SizedBox(height: 20),
-            _buildWarrantySection(),
+            _construirSeccionGarantia(),
             const SizedBox(height: 30),
-            _buildButtons(context),
+            _construirBotones(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderImage() {
-    if (_imageUrl.isEmpty) {
+  // La foto bonita de la cabecera
+  Widget _construirImagenCabecera() {
+    if (_urlImagen.isEmpty) {
       return Container(
         height: 200,
         width: double.infinity,
@@ -240,7 +248,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(25),
         image: DecorationImage(
-          image: NetworkImage(rasterHttpUrlOrPlaceholder(_imageUrl)),
+          image: NetworkImage(urlRasterHttpOPlaceholder(_urlImagen)),
           fit: BoxFit.cover,
         ),
         boxShadow: [
@@ -254,16 +262,18 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     );
   }
 
-  Widget _buildBarcodeVisualizer() {
-    if (_scannedCode == null || _scannedCode!.isEmpty) return const SizedBox.shrink();
+  // Dibuja el código de barras o QR para que la gente de la caja del súper lo pueda escanear de la pantalla
+  Widget _construirVisorCodigoBarras() {
+    if (_codigoEscaneado == null || _codigoEscaneado!.isEmpty) return const SizedBox.shrink();
 
-    final isQr = _barcodeFormatLabel?.toLowerCase().contains('qr') == true;
-    final url = isQr 
-        ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$_scannedCode'
-        : 'https://barcodeapi.org/api/128/$_scannedCode';
+    final esQr = _etiquetaFormatoCodigo?.toLowerCase().contains('qr') == true;
+    final url = esQr 
+        ? 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$_codigoEscaneado'
+        : 'https://barcodeapi.org/api/128/$_codigoEscaneado';
 
     return GestureDetector(
       onTap: () {
+        // Al tocarlo, se hace gigante en medio de la pantalla
         showDialog(
           context: context,
           builder: (context) => Dialog(
@@ -275,13 +285,13 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    isQr ? 'Escaneando QR' : 'Escaneando Barras',
+                    esQr ? 'Escaneando QR' : 'Escaneando Barras',
                     style: const TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 25),
                   Image.network(url, fit: BoxFit.contain, height: 250),
                   const SizedBox(height: 20),
-                  Text(_scannedCode!, style: const TextStyle(color: Colors.black54, fontSize: 18, letterSpacing: 2)),
+                  Text(_codigoEscaneado!, style: const TextStyle(color: Colors.black54, fontSize: 18, letterSpacing: 2)),
                 ],
               ),
             ),
@@ -305,7 +315,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 Icon(Icons.zoom_out_map, color: Colors.grey.shade600, size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  AppStrings.of(context).tapToEnlarge,
+                  TextosApp.de(context).tocarParaAmpliar,
                   style: const TextStyle(color: Colors.black45, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -316,9 +326,10 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     );
   }
 
-  Widget _buildInfoCard() {
-    final t = AppStrings.of(context);
-    final bool hasBarcode = _scannedCode != null && _scannedCode!.isNotEmpty;
+  // La cajita negra de en medio con los textos y precios
+  Widget _construirTarjetaInformacion() {
+    final textos = TextosApp.de(context);
+    final bool tieneCodigo = _codigoEscaneado != null && _codigoEscaneado!.isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -339,7 +350,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             children: [
               Expanded(
                 child: Text(
-                  _storeName,
+                  _nombreComercio,
                   style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
                 ),
               ),
@@ -351,26 +362,27 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                 ),
             ],
           ),
-          if (hasBarcode) ...[
+          if (tieneCodigo) ...[
             const SizedBox(height: 15),
             const Divider(color: Colors.white12),
             const SizedBox(height: 15),
-            _InfoRow(icon: Icons.qr_code, iconColor: Colors.deepOrange, title: t.codeRead, value: _scannedCode!),
-            _InfoRow(icon: Icons.loyalty, iconColor: Colors.teal, title: t.codeFormat, value: _barcodeFormatLabel ?? t.unknownFormat),
+            _FilaInformacion(icono: Icons.qr_code, colorIcono: Colors.deepOrange, titulo: textos.codigoLeido, valor: _codigoEscaneado!),
+            _FilaInformacion(icono: Icons.loyalty, colorIcono: Colors.teal, titulo: textos.formatoCodigo, valor: _etiquetaFormatoCodigo ?? textos.formatoDesconocido),
           ],
           const SizedBox(height: 15),
           const Divider(color: Colors.white12),
           const SizedBox(height: 15),
-          _InfoRow(icon: Icons.calendar_today, iconColor: Colors.greenAccent, title: t.purchaseDate, value: _date),
+          _FilaInformacion(icono: Icons.calendar_today, colorIcono: Colors.greenAccent, titulo: textos.fechaCompra, valor: _fecha),
           const Divider(color: Colors.white12, height: 30),
-          _InfoRow(icon: Icons.monetization_on, iconColor: const Color(0xFFFF4081), title: t.ticketAmount, value: PriceCurrency.formatForDisplay(_price, AppSettingsScope.of(context).currencySymbol), valueColor: const Color(0xFFFF4081), isBold: true, isLarge: true),
+          _FilaInformacion(icono: Icons.monetization_on, colorIcono: const Color(0xFFFF4081), titulo: textos.importeTicket, valor: DivisaPrecio.formatearParaVista(_precio, AlcanceAjustesApp.of(context).simboloMoneda), colorValor: const Color(0xFFFF4081), esNegrita: true, esGrande: true),
         ],
       ),
     );
   }
 
-  Widget _buildWarrantySection() {
-    final t = AppStrings.of(context);
+  // La tira de colores de abajo para activar la garantía en el calendario
+  Widget _construirSeccionGarantia() {
+    final textos = TextosApp.de(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -385,42 +397,43 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             children: [
               const Icon(Icons.security, color: Colors.white, size: 28),
               const SizedBox(width: 10),
-              Text(t.protectWarranty, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(textos.protegerGarantia, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 10),
-          Text(t.warrantyAlertHint, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          Text(textos.pistaAlertaGarantia, style: const TextStyle(color: Colors.white70, fontSize: 13)),
           const SizedBox(height: 15),
           ElevatedButton(
-            onPressed: _openAlertScreen,
+            onPressed: _abrirPantallaAlerta,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFF9C27B0),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
-            child: Text(t.configureAlert),
+            child: Text(textos.configurarAlerta),
           )
         ],
       ),
     );
   }
 
-  Widget _buildButtons(BuildContext context) {
-    final t = AppStrings.of(context);
+  // Los 3 botones de abajo
+  Widget _construirBotones(BuildContext context) {
+    final textos = TextosApp.de(context);
     return Column(
       children: [
         SizedBox(
           width: double.infinity,
           height: 55,
           child: OutlinedButton.icon(
-            onPressed: _shareTicket,
+            onPressed: _compartirTicket,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.blueAccent,
               side: const BorderSide(color: Colors.blueAccent),
             ),
             icon: const Icon(Icons.share_outlined),
-            label: Text(t.shareTicket),
+            label: Text(textos.compartirTicket),
           ),
         ),
         const SizedBox(height: 15),
@@ -428,9 +441,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           width: double.infinity,
           height: 55,
           child: OutlinedButton.icon(
-            onPressed: _openEditTicket,
+            onPressed: _abrirEditarTicket,
             icon: const Icon(Icons.edit_outlined),
-            label: Text(t.editTicket),
+            label: Text(textos.editarTicket),
           ),
         ),
         const SizedBox(height: 15),
@@ -438,13 +451,13 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           width: double.infinity,
           height: 55,
           child: OutlinedButton.icon(
-            onPressed: _deleteTicket,
+            onPressed: _eliminarTicket,
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.redAccent,
               side: const BorderSide(color: Colors.redAccent),
             ),
             icon: const Icon(Icons.delete_outline),
-            label: Text(t.deleteTicket),
+            label: Text(textos.eliminarTicket),
           ),
         ),
       ],
@@ -452,24 +465,25 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.value,
-    this.valueColor,
-    this.isBold = false,
-    this.isLarge = false,
+// Un widget pequeño para dibujar filas con icono bonito (precio, fecha...)
+class _FilaInformacion extends StatelessWidget {
+  const _FilaInformacion({
+    required this.icono,
+    required this.colorIcono,
+    required this.titulo,
+    required this.valor,
+    this.colorValor,
+    this.esNegrita = false,
+    this.esGrande = false,
   });
 
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String value;
-  final Color? valueColor;
-  final bool isBold;
-  final bool isLarge;
+  final IconData icono;
+  final Color colorIcono;
+  final String titulo;
+  final String valor;
+  final Color? colorValor;
+  final bool esNegrita;
+  final bool esGrande;
 
   @override
   Widget build(BuildContext context) {
@@ -478,10 +492,10 @@ class _InfoRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
+            color: colorIcono.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: iconColor, size: 24),
+          child: Icon(icono, color: colorIcono, size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -489,7 +503,7 @@ class _InfoRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                titulo,
                 style: const TextStyle(
                   color: Colors.white54,
                   fontSize: 12,
@@ -497,11 +511,11 @@ class _InfoRow extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                value,
+                valor,
                 style: TextStyle(
-                  color: valueColor ?? Colors.white,
-                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                  fontSize: isLarge ? 20 : 16,
+                  color: colorValor ?? Colors.white,
+                  fontWeight: esNegrita ? FontWeight.bold : FontWeight.normal,
+                  fontSize: esGrande ? 20 : 16,
                 ),
               ),
             ],

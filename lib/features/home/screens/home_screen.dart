@@ -11,34 +11,33 @@ import '../../auth/services/auth_service.dart';
 import '../../auth/screens/login_screen.dart';
 import '../widgets/header_icon.dart';
 
-/// Pantalla principal que muestra el listado de tickets guardados desde Firebase.
-/// Maneja la UI de búsqueda y el panel inferior.
-/// @author Luis Bermeo
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+/*
+ * ¿Qué hace este archivo?
+ * Esta es la pantalla principal, el "Home" donde aterrizas al entrar en la app.
+ * Te enseña todas las carpetitas de tus tiendas y te deja buscar tickets.
+ * También tiene el botón tocho rosa abajo para escanear tickets nuevos.
+ */
+class PantallaInicio extends StatefulWidget {
+  const PantallaInicio({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<PantallaInicio> createState() => _EstadoPantallaInicio();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final TicketService _ticketService = TicketService();
-  String _searchQuery = "";
+class _EstadoPantallaInicio extends State<PantallaInicio> {
+  final ServicioTicket _servicioTicket = ServicioTicket();
+  String _consultaBusqueda = "";
 
-  // El comportamiento de edición individual ahora está en StoreTicketsScreen.
-  // Solo lo dejamos por si hiciera falta a nivel global.
-  /// Muestra un menú inferior (BottomSheet) para que el usuario elija
-  /// si desea escanear el ticket mediante OCR (foto) o escanear un
-  /// código de barras / QR de forma rápida.
-  /// @author Javier Abellán
-  void _goToScanScreen() {
+  // Despliega una ventanita por abajo para que elijas si quieres escanear con la cámara 
+  // para leer el texto (OCR) o si prefieres leer el código de barras del súper.
+  void _irAPantallaEscaner() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) {
-        final t = AppStrings.of(context);
+        final textos = TextosApp.de(context);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -46,31 +45,31 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  t.chooseScanMode,
+                  textos.elegirModoEscaneo,
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 ListTile(
                   leading: const Icon(Icons.document_scanner, color: Color(0xFFE91E63)),
-                  title: Text(t.scanOcrTitle),
-                  subtitle: Text(t.scanOcrSubtitle),
+                  title: Text(textos.tituloEscanearOcr),
+                  subtitle: Text(textos.subtituloEscanearOcr),
                   onTap: () {
-                    Navigator.pop(context); // Cerrar Modal
+                    Navigator.pop(context); // Escondemos el menú
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ScanTicketScreen()),
+                      MaterialPageRoute(builder: (_) => const PantallaEscanearTicket()),
                     );
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.qr_code_scanner, color: Color(0xFFE91E63)),
-                  title: Text(t.scanBarcodeTitle),
-                  subtitle: Text(t.scanBarcodeSubtitle),
+                  title: Text(textos.tituloEscanearBarras),
+                  subtitle: Text(textos.subtituloEscanearBarras),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(context); // Escondemos el menú
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+                      MaterialPageRoute(builder: (_) => const PantallaEscanerCodigo()),
                     );
                   },
                 ),
@@ -90,17 +89,17 @@ class _HomeScreenState extends State<HomeScreen> {
         bottom: false,
         child: Column(
           children: [
-            _buildHeader(context),
-            Expanded(child: _buildTicketList(context)),
+            _construirCabecera(context),
+            Expanded(child: _construirListaTickets(context)),
           ],
         ),
       ),
     );
   }
 
-  /// Franja superior con título, buscador y opciones.
-  Widget _buildHeader(BuildContext context) {
-    final t = AppStrings.of(context);
+  // La parte de arriba moradita oscura con el buscador, la tuerca de ajustes y la puerta de salir
+  Widget _construirCabecera(BuildContext context) {
+    final textos = TextosApp.de(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -114,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    t.homeTitle,
+                    textos.tituloInicio,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -125,26 +124,27 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Row(
                 children: [
-                  HeaderIcon(
-                    icon: Icons.settings_outlined,
-                    onTap: () {
+                  IconoCabecera(
+                    icono: Icons.settings_outlined,
+                    alPulsar: () {
                       Navigator.push<void>(
                         context,
                         MaterialPageRoute<void>(
-                          builder: (context) => const SettingsScreen(),
+                          builder: (context) => const PantallaAjustes(),
                         ),
                       );
                     },
                   ),
                   const SizedBox(width: 12),
-                  HeaderIcon(
-                    icon: Icons.logout,
-                    onTap: () async {
-                      await AuthService().signOut();
+                  IconoCabecera(
+                    icono: Icons.logout,
+                    alPulsar: () async {
+                      // Nos deslogueamos de Firebase y pa' la calle
+                      await ServicioAutenticacion().cerrarSesion();
                       if (!context.mounted) return;
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        MaterialPageRoute(builder: (_) => const PantallaLogin()),
                         (route) => false,
                       );
                     },
@@ -158,12 +158,13 @@ class _HomeScreenState extends State<HomeScreen> {
           TextField(
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: t.searchStore,
+              hintText: textos.buscarComercio,
               prefixIcon: const Icon(Icons.search, color: Colors.white54),
             ),
-            onChanged: (val) {
+            onChanged: (valor) {
               setState(() {
-                _searchQuery = val.toLowerCase();
+                // Lo pasamos todo a minúsculas pa que no haya líos al buscar "Zara" o "zara"
+                _consultaBusqueda = valor.toLowerCase();
               });
             },
           )
@@ -172,12 +173,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Contenedor blanco con la lista de tickets que usa StreamBuilder
-  Widget _buildTicketList(BuildContext context) {
+  // Zona blanca gorda donde se pintan todas las carpetas de tiendas
+  Widget _construirListaTickets(BuildContext context) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        color: Color(0xFFF5F7FA), // Light theme underneath / could change for dark mode
+        color: Color(0xFFF5F7FA), // Tonito claro
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
@@ -185,75 +186,82 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Stack(
         children: [
+          // Esto es magia de Firebase: si cambias algo en la base de datos, 
+          // la lista se refresca sola sin tener que hacer F5 ni nada.
           StreamBuilder<List<Ticket>>(
-            stream: _ticketService.getUserTickets(),
-            builder: (context, snapshot) {
-              final t = AppStrings.of(context);
-              if (snapshot.connectionState == ConnectionState.waiting) {
+            stream: _servicioTicket.obtenerTicketsUsuario(),
+            builder: (context, instantanea) {
+              final textos = TextosApp.de(context);
+              
+              if (instantanea.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (snapshot.hasError) {
+              if (instantanea.hasError) {
                 return Center(
                   child: Text(
-                    'Ocurrió un error al cargar: ${snapshot.error}',
+                    'Ocurrió un error al cargar: ${instantanea.error}',
                     style: const TextStyle(color: Colors.red),
                   ),
                 );
               }
 
-              final tickets = snapshot.data ?? [];
+              final tickets = instantanea.data ?? [];
               
-              // Filtrado local pre-existente
-              final filteredTickets = tickets.where((t) {
-                return t.storeName.toLowerCase().contains(_searchQuery) ||
-                       t.categoria.toLowerCase().contains(_searchQuery);
+              // Filtramos a mano lo que haya escrito el usuario en el buscador
+              final ticketsFiltrados = tickets.where((t) {
+                return t.nombreComercio.toLowerCase().contains(_consultaBusqueda) ||
+                       t.categoria.toLowerCase().contains(_consultaBusqueda);
               }).toList();
 
-              if (filteredTickets.isEmpty) {
+              if (ticketsFiltrados.isEmpty) {
+                // Si no hay na de na, sacamos un texto triste
                 return Center(
                   child: Text(
-                    t.noStoresFound,
+                    textos.sinComerciosEncontrados,
                     style: const TextStyle(color: Colors.black54, fontSize: 16),
                   ),
                 );
               }
 
-              // Agrupación de tickets por nombre ignorando case (Carpetas)
-              final Map<String, List<Ticket>> groupedMap = {};
-              for (var t in filteredTickets) {
-                final key = t.storeName.trim().toLowerCase();
-                if (!groupedMap.containsKey(key)) {
-                  groupedMap[key] = [];
+              // Metemos todos los tickets que se llamen igual en la misma caja fuerte (diccionario)
+              // Así no tenemos 30 carpetas de "Mercadona"
+              final Map<String, List<Ticket>> mapaAgrupado = {};
+              for (var t in ticketsFiltrados) {
+                final clave = t.nombreComercio.trim().toLowerCase();
+                if (!mapaAgrupado.containsKey(clave)) {
+                  mapaAgrupado[clave] = [];
                 }
-                groupedMap[key]!.add(t);
+                mapaAgrupado[clave]!.add(t);
               }
-              final groups = groupedMap.values.toList();
+              final grupos = mapaAgrupado.values.toList();
 
               return ListView.separated(
                 padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
-                itemCount: groups.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 20),
-                itemBuilder: (context, index) {
-                  final groupTickets = groups[index];
-                  final storeNameTitle = groupTickets.first.storeName;
-                  return StoreGroupCard(
-                    storeName: storeNameTitle,
-                    tickets: groupTickets,
+                itemCount: grupos.length,
+                separatorBuilder: (context, indice) => const SizedBox(height: 20),
+                itemBuilder: (context, indice) {
+                  final ticketsDelGrupo = grupos[indice];
+                  final tituloTienda = ticketsDelGrupo.first.nombreComercio;
+                  return TarjetaGrupoComercio(
+                    nombreComercio: tituloTienda,
+                    tickets: ticketsDelGrupo,
                   );
                 },
               );
             },
           ),
+          
+          // El botón gigante rosa pa' la foto
           Positioned(
             bottom: 30,
             left: 20,
             right: 20,
             child: ElevatedButton.icon(
-              onPressed: _goToScanScreen,
+              onPressed: _irAPantallaEscaner,
               icon: const Icon(Icons.camera_alt_rounded),
-              label: Text(AppStrings.of(context).scanTicket.toUpperCase()),
+              label: Text(TextosApp.de(context).escanearTicket.toUpperCase()),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE91E63), // Pink Gradient color emulation
+                backgroundColor: const Color(0xFFE91E63),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(

@@ -5,13 +5,21 @@ import '../../../core/settings/app_currency.dart';
 import '../../../core/settings/app_settings_scope.dart';
 import '../../backup/services/drive_service.dart';
 
-/// Ajustes básicos: idioma y divisa (símbolo mostrado).
-/// @author Luis Bermeo
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+/*
+ * ¿Qué hace este archivo?
+ * Esta es la pantalla de ajustes de toda la vida. 
+ * Aquí el usuario puede cambiar el idioma de la app, decidir en qué moneda 
+ * quiere ver los precios (Euros, Dólares...) y lo más importante: 
+ * guardar o recuperar sus tickets de Google Drive para no perderlos si cambia de móvil.
+ */
+class PantallaAjustes extends StatelessWidget {
+  const PantallaAjustes({super.key});
 
-  Future<void> _handleBackup(BuildContext context, bool isRestore) async {
-    final t = AppStrings.of(context);
+  // Esto se encarga de subir los tickets a Drive o bajarlos si es nuevo en la app
+  Future<void> _gestionarCopiaSeguridad(BuildContext context, bool esRestauracion) async {
+    final textos = TextosApp.de(context);
+    
+    // Le plantamos un diálogo de carga para que vea que estamos haciendo cosas y no toque nada
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -20,26 +28,30 @@ class SettingsScreen extends StatelessWidget {
           children: [
             const CircularProgressIndicator(),
             const SizedBox(width: 20),
-            Text(t.pleaseWait),
+            Text(textos.porFavorEspera),
           ],
         ),
       ),
     );
 
-    final driveService = DriveService();
-    final bool success = isRestore ? await driveService.restoreBackup() : await driveService.backupTickets();
+    final servicioDrive = ServicioDrive();
+    final bool exito = esRestauracion 
+      ? await servicioDrive.restaurarCopiaSeguridad() 
+      : await servicioDrive.hacerCopiaSeguridadTickets();
 
     if (context.mounted) {
-      Navigator.pop(context); // popup dismiss
+      Navigator.pop(context); // Quitamos el pop-up de carga
+      
+      // Y le avisamos de si ha ido bien o la ha liado
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            success 
-                ? (isRestore ? t.restoreSuccess : t.backupSuccess) 
-                : (isRestore ? t.restoreError : t.backupError),
+            exito 
+                ? (esRestauracion ? textos.restauracionExito : textos.copiaSeguridadExito) 
+                : (esRestauracion ? textos.errorRestauracion : textos.errorCopiaSeguridad),
             style: const TextStyle(color: Colors.white),
           ),
-          backgroundColor: success ? Colors.green : Colors.red,
+          backgroundColor: exito ? Colors.green : Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -48,15 +60,15 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = AppSettingsScope.of(context);
-    final t = AppStrings.of(context);
+    final ajustes = AlcanceAjustesApp.of(context);
+    final textos = TextosApp.de(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
         title: Text(
-          t.settingsTitle,
+          textos.tituloAjustes,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -67,75 +79,78 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: ListenableBuilder(
-        listenable: settings,
+        listenable: ajustes,
         builder: (context, _) {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionCard(
+                // Cajita para elegir si habla en Español o en Guiri
+                _construirTarjetaSeccion(
                   context,
-                  icon: Icons.language,
-                  iconColor: Colors.blue,
-                  title: t.settingsLanguageSection,
-                  child: Column(
+                  icono: Icons.language,
+                  colorIcono: Colors.blue,
+                  titulo: textos.seccionIdiomaAjustes,
+                  hijo: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t.settingsLanguageHint,
+                        textos.pistaIdiomaAjustes,
                         style: TextStyle(
                           color: Colors.black.withValues(alpha: 0.7),
                           fontSize: 13,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _languageTile(
+                      _construirCasillaIdioma(
                         context,
-                        title: t.langSpanish,
-                        subtitle: 'Español',
-                        selected: settings.locale.languageCode == 'es',
-                        onTap: () => settings.setLocale(const Locale('es')),
+                        titulo: textos.idiomaEspanol,
+                        subtitulo: 'Español',
+                        seleccionado: ajustes.idioma.languageCode == 'es',
+                        alPulsar: () => ajustes.cambiarIdioma(const Locale('es')),
                       ),
                       const SizedBox(height: 8),
-                      _languageTile(
+                      _construirCasillaIdioma(
                         context,
-                        title: t.langEnglish,
-                        subtitle: 'English',
-                        selected: settings.locale.languageCode == 'en',
-                        onTap: () => settings.setLocale(const Locale('en')),
+                        titulo: textos.idiomaIngles,
+                        subtitulo: 'English',
+                        seleccionado: ajustes.idioma.languageCode == 'en',
+                        alPulsar: () => ajustes.cambiarIdioma(const Locale('en')),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
-                _sectionCard(
+                
+                // Cajita para elegir la pasta (€, $, £...)
+                _construirTarjetaSeccion(
                   context,
-                  icon: Icons.payments_outlined,
-                  iconColor: Colors.teal,
-                  title: t.settingsCurrencySection,
-                  child: Column(
+                  icono: Icons.payments_outlined,
+                  colorIcono: Colors.teal,
+                  titulo: textos.seccionMonedaAjustes,
+                  hijo: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t.settingsCurrencyHint,
+                        textos.pistaMonedaAjustes,
                         style: TextStyle(
                           color: Colors.black.withValues(alpha: 0.7),
                           fontSize: 13,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      ...AppCurrency.values.map((c) {
-                        final label =
-                            settings.isEnglish ? c.labelEn : c.labelEs;
+                      ...MonedaApp.values.map((moneda) {
+                        final etiqueta =
+                            ajustes.esIngles ? moneda.etiquetaEn : moneda.etiquetaEs;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: _currencyTile(
+                          child: _construirCasillaMoneda(
                             context,
-                            title: label,
-                            symbol: c.symbol,
-                            selected: settings.currency == c,
-                            onTap: () => settings.setCurrency(c),
+                            titulo: etiqueta,
+                            simbolo: moneda.simbolo,
+                            seleccionado: ajustes.moneda == moneda,
+                            alPulsar: () => ajustes.cambiarMoneda(moneda),
                           ),
                         );
                       }),
@@ -143,16 +158,18 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _sectionCard(
+                
+                // Zona de peligro: Copias de seguridad en Google Drive
+                _construirTarjetaSeccion(
                   context,
-                  icon: Icons.cloud_upload_outlined,
-                  iconColor: Colors.deepPurple,
-                  title: t.backupSection,
-                  child: Column(
+                  icono: Icons.cloud_upload_outlined,
+                  colorIcono: Colors.deepPurple,
+                  titulo: textos.seccionCopiaSeguridad,
+                  hijo: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t.backupHint,
+                        textos.pistaCopiaSeguridad,
                         style: TextStyle(
                           color: Colors.black.withValues(alpha: 0.7),
                           fontSize: 13,
@@ -163,9 +180,9 @@ class SettingsScreen extends StatelessWidget {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton.icon(
-                          onPressed: () => _handleBackup(context, false),
+                          onPressed: () => _gestionarCopiaSeguridad(context, false), // false = hacer backup
                           icon: const Icon(Icons.backup_outlined),
-                          label: FittedBox(fit: BoxFit.scaleDown, child: Text(t.backupDrive)),
+                          label: FittedBox(fit: BoxFit.scaleDown, child: Text(textos.copiaDrive)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF1877F2),
                             foregroundColor: Colors.white,
@@ -178,9 +195,9 @@ class SettingsScreen extends StatelessWidget {
                         width: double.infinity,
                         height: 50,
                         child: OutlinedButton.icon(
-                          onPressed: () => _handleBackup(context, true),
+                          onPressed: () => _gestionarCopiaSeguridad(context, true), // true = restaurar backup
                           icon: const Icon(Icons.restore),
-                          label: FittedBox(fit: BoxFit.scaleDown, child: Text(t.restoreDrive)),
+                          label: FittedBox(fit: BoxFit.scaleDown, child: Text(textos.restaurarDrive)),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF1877F2),
                             side: const BorderSide(color: Color(0xFF1877F2)),
@@ -192,13 +209,15 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _sectionCard(
+                
+                // Zona de créditos y "Acerca de"
+                _construirTarjetaSeccion(
                   context,
-                  icon: Icons.info_outline,
-                  iconColor: Colors.orange,
-                  title: t.settingsAboutSection,
-                  child: Text(
-                    t.settingsAboutBody,
+                  icono: Icons.info_outline,
+                  colorIcono: Colors.orange,
+                  titulo: textos.seccionAcercaDeAjustes,
+                  hijo: Text(
+                    textos.cuerpoAcercaDeAjustes,
                     style: const TextStyle(
                       color: Colors.black87,
                       fontSize: 14,
@@ -214,12 +233,13 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _sectionCard(
+  // Plantilla para que todas las cajitas blancas de la pantalla sean igual de bonitas
+  Widget _construirTarjetaSeccion(
     BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required Widget child,
+    required IconData icono,
+    required Color colorIcono,
+    required String titulo,
+    required Widget hijo,
   }) {
     return Container(
       width: double.infinity,
@@ -243,15 +263,15 @@ class SettingsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
+                  color: colorIcono.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: iconColor, size: 22),
+                child: Icon(icono, color: colorIcono, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  title,
+                  titulo,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -262,34 +282,35 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          child,
+          hijo,
         ],
       ),
     );
   }
 
-  Widget _languageTile(
+  // Fila para elegir idioma, si lo tocas se pone azulito
+  Widget _construirCasillaIdioma(
     BuildContext context, {
-    required String title,
-    required String subtitle,
-    required bool selected,
-    required VoidCallback onTap,
+    required String titulo,
+    required String subtitulo,
+    required bool seleccionado,
+    required VoidCallback alPulsar,
   }) {
     return Material(
       color: const Color(0xFFF8F9FA),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: onTap,
+        onTap: alPulsar,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected
+              color: seleccionado
                   ? const Color(0xFF1877F2)
                   : Colors.grey.shade200,
-              width: selected ? 2 : 1,
+              width: seleccionado ? 2 : 1,
             ),
           ),
           child: Row(
@@ -299,7 +320,7 @@ class SettingsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      titulo,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         color: Colors.black,
@@ -307,7 +328,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      subtitle,
+                      subtitulo,
                       style: TextStyle(
                         color: Colors.black.withValues(alpha: 0.55),
                         fontSize: 13,
@@ -316,7 +337,7 @@ class SettingsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              if (selected)
+              if (seleccionado)
                 const Icon(Icons.check_circle, color: Color(0xFF1877F2)),
             ],
           ),
@@ -325,28 +346,29 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _currencyTile(
+  // Fila para elegir moneda con el simbolito de la moneda destacado a la izquierda
+  Widget _construirCasillaMoneda(
     BuildContext context, {
-    required String title,
-    required String symbol,
-    required bool selected,
-    required VoidCallback onTap,
+    required String titulo,
+    required String simbolo,
+    required bool seleccionado,
+    required VoidCallback alPulsar,
   }) {
     return Material(
       color: const Color(0xFFF8F9FA),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: onTap,
+        onTap: alPulsar,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected
+              color: seleccionado
                   ? const Color(0xFF1877F2)
                   : Colors.grey.shade200,
-              width: selected ? 2 : 1,
+              width: seleccionado ? 2 : 1,
             ),
           ),
           child: Row(
@@ -360,7 +382,7 @@ class SettingsScreen extends StatelessWidget {
                   border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: Text(
-                  symbol,
+                  simbolo,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -371,7 +393,7 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
-                  title,
+                  titulo,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
@@ -379,7 +401,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              if (selected)
+              if (seleccionado)
                 const Icon(Icons.check_circle, color: Color(0xFF1877F2)),
             ],
           ),

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:archive/archive_io.dart'; // From archive package to encode/decode
+import 'package:archive/archive_io.dart'; // Paquete para comprimir y descomprimir en ZIP
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
@@ -11,218 +11,229 @@ import 'package:path_provider/path_provider.dart';
 import '../../tickets/models/ticket.dart';
 import '../../tickets/services/ticket_service.dart';
 
-class GoogleAuthClient extends http.BaseClient {
-  final Map<String, String> _headers;
-  final http.Client _client = http.Client();
+/*
+ * ¿Qué hace este archivo?
+ * Aquí manejamos toda la movida de las copias de seguridad en Google Drive.
+ * Nos encargamos de empaquetar todos los tickets y las fotos en un archivo ZIP
+ * para subirlo a la nube del usuario, y también de descargarlo y restaurarlo si 
+ * cambia de móvil o algo así.
+ */
 
-  GoogleAuthClient(this._headers);
+// Este cliente HTTP es necesario para inyectar los tokens de Google en cada petición.
+class ClienteAuthGoogle extends http.BaseClient {
+  final Map<String, String> _cabeceras;
+  final http.Client _cliente = http.Client();
+
+  ClienteAuthGoogle(this._cabeceras);
 
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    return _client.send(request..headers.addAll(_headers));
+  Future<http.StreamedResponse> send(http.BaseRequest peticion) {
+    return _cliente.send(peticion..headers.addAll(_cabeceras));
   }
 }
 
-class DriveService {
-  final TicketService _ticketService = TicketService();
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
+class ServicioDrive {
+  final ServicioTicket _servicioTicket = ServicioTicket();
+  
+  // Pedimos explícitamente permiso para crear y modificar archivos en el Drive del usuario
+  final GoogleSignIn _inicioSesionGoogle = GoogleSignIn(
     scopes: [drive.DriveApi.driveFileScope],
   );
 
-  Future<drive.DriveApi?> _getDriveApi() async {
+  // Intentamos conseguir acceso a la API de Drive. Si el usuario no ha iniciado sesión, se lo pedimos.
+  Future<drive.DriveApi?> _obtenerApiDrive() async {
     try {
-      GoogleSignInAccount? account = _googleSignIn.currentUser;
-      if (account == null) {
-        account = await _googleSignIn.signIn();
+      GoogleSignInAccount? cuenta = _inicioSesionGoogle.currentUser;
+      if (cuenta == null) {
+        cuenta = await _inicioSesionGoogle.signIn();
       } else {
-        // Enforce getting scopes
-        if (!await _googleSignIn.requestScopes([drive.DriveApi.driveFileScope])) {
+        // Nos aseguramos de que realmente nos haya dado los permisos de Drive
+        if (!await _inicioSesionGoogle.requestScopes([drive.DriveApi.driveFileScope])) {
           return null;
         }
       }
 
-      if (account == null) return null;
+      if (cuenta == null) return null;
 
-      final authHeaders = await account.authHeaders;
-      final authenticateClient = GoogleAuthClient(authHeaders);
-      return drive.DriveApi(authenticateClient);
+      final cabecerasAuth = await cuenta.authHeaders;
+      final clienteAutenticado = ClienteAuthGoogle(cabecerasAuth);
+      return drive.DriveApi(clienteAutenticado);
     } catch (e) {
-      if (kDebugMode) print("Error authenticating Drive: $e");
+      if (kDebugMode) print("Error al autenticar con Drive: $e");
       return null;
     }
   }
 
-  /// Backup logic
-  Future<bool> backupTickets() async {
-    final driveApi = await _getDriveApi();
-    if (driveApi == null) return false;
+  // --- Lógica para subir la copia de seguridad ---
+  Future<bool> hacerCopiaSeguridadTickets() async {
+    final apiDrive = await _obtenerApiDrive();
+    if (apiDrive == null) return false;
 
     try {
-      // 1. Fetch tickets
-      final ticketsStream = _ticketService.getUserTickets();
-      final tickets = await ticketsStream.first; 
+      // 1. Pillamos todos los tickets del usuario
+      final flujoTickets = _servicioTicket.obtenerTicketsUsuario();
+      final tickets = await flujoTickets.first; 
 
-      final dir = await getTemporaryDirectory();
-      final backupDirPath = '${dir.path}/ticksave_backup_tmp';
-      final backupDir = Directory(backupDirPath);
-      if (await backupDir.exists()) await backupDir.delete(recursive: true);
-      await backupDir.create();
+      // Preparamos una carpeta temporal en el móvil para ir guardando las cosas
+      final directorioTemporal = await getTemporaryDirectory();
+      final rutaDirectorioCopia = '${directorioTemporal.path}/ticksave_backup_tmp';
+      final directorioCopia = Directory(rutaDirectorioCopia);
+      
+      // Limpiamos por si había basura de antes
+      if (await directorioCopia.exists()) await directorioCopia.delete(recursive: true);
+      await directorioCopia.create();
 
-      // 2. Download images and build JSON config
-      List<Map<String, dynamic>> ticketsJson = [];
-      int imageIndex = 0;
+      // 2. Nos descargamos las imágenes de Firebase y preparamos el JSON
+      List<Map<String, dynamic>> jsonTickets = [];
+      int indiceImagen = 0;
 
       for (var ticket in tickets) {
-        final tMap = ticket.toMap();
-        tMap['id'] = ticket.id; // ensure ID is kept
+        final mapaTicket = ticket.aMapa();
+        mapaTicket['id'] = ticket.id; // Guardamos el ID por si acaso
         
-        if (ticket.imageUrl.isNotEmpty && ticket.imageUrl.startsWith('http')) {
+        // Si el ticket tiene imagen y es una URL de verdad, la bajamos
+        if (ticket.urlImagen.isNotEmpty && ticket.urlImagen.startsWith('http')) {
           try {
-            final res = await http.get(Uri.parse(ticket.imageUrl));
-            if (res.statusCode == 200) {
-              final imgName = 'image_$imageIndex.jpg';
-              final imgFile = File('${backupDir.path}/$imgName');
-              await imgFile.writeAsBytes(res.bodyBytes);
-              tMap['local_image_path'] = imgName;
-              imageIndex++;
+            final respuesta = await http.get(Uri.parse(ticket.urlImagen));
+            if (respuesta.statusCode == 200) {
+              final nombreImagen = 'imagen_$indiceImagen.jpg';
+              final archivoImagen = File('${directorioCopia.path}/$nombreImagen');
+              await archivoImagen.writeAsBytes(respuesta.bodyBytes);
+              mapaTicket['ruta_imagen_local'] = nombreImagen;
+              indiceImagen++;
             }
           } catch (e) {
-            if (kDebugMode) print("Failed to download image: $e");
+            if (kDebugMode) print("Fallo al descargar la imagen: $e");
           }
         }
-        ticketsJson.add(tMap);
+        jsonTickets.add(mapaTicket);
       }
 
-      // Save JSON
-      final jsonFile = File('${backupDir.path}/tickets.json');
-      await jsonFile.writeAsString(jsonEncode(ticketsJson));
+      // Guardamos todos los datos en un archivo tickets.json
+      final archivoJson = File('${directorioCopia.path}/tickets.json');
+      await archivoJson.writeAsString(jsonEncode(jsonTickets));
 
-      // 3. Zip file
-      final encoder = ZipFileEncoder();
-      final zipFile = File('${dir.path}/ticksave_backup.zip');
-      encoder.create(zipFile.path);
-      encoder.addDirectory(backupDir);
-      encoder.close();
+      // 3. Lo metemos todo en un ZIP para que ocupe menos y sea un solo archivo
+      final codificadorZip = ZipFileEncoder();
+      final archivoZip = File('${directorioTemporal.path}/ticksave_backup.zip');
+      codificadorZip.create(archivoZip.path);
+      codificadorZip.addDirectory(directorioCopia);
+      codificadorZip.close();
 
-      // 4. Upload to Drive
-      final media = drive.Media(zipFile.openRead(), zipFile.lengthSync());
-      final driveFile = drive.File()..name = 'ticksave_backup.zip';
+      // 4. Pa'rriba, lo subimos a Google Drive
+      final contenidoMultimedia = drive.Media(archivoZip.openRead(), archivoZip.lengthSync());
+      final archivoDrive = drive.File()..name = 'ticksave_backup.zip';
 
-      // Check if old backup exists in the app scope
-      final q = "name = 'ticksave_backup.zip' and trashed = false";
-      final fileList = await driveApi.files.list(q: q, $fields: "files(id)");
+      // Buscamos a ver si ya hay una copia anterior para sobreescribirla
+      final consulta = "name = 'ticksave_backup.zip' and trashed = false";
+      final listaArchivos = await apiDrive.files.list(q: consulta, $fields: "files(id)");
       
-      if (fileList.files != null && fileList.files!.isNotEmpty) {
-        // Update existing (replace)
-        final existingFileId = fileList.files!.first.id!;
-        await driveApi.files.update(driveFile, existingFileId, uploadMedia: media);
+      if (listaArchivos.files != null && listaArchivos.files!.isNotEmpty) {
+        // Ya existe, la actualizamos
+        final idArchivoExistente = listaArchivos.files!.first.id!;
+        await apiDrive.files.update(archivoDrive, idArchivoExistente, uploadMedia: contenidoMultimedia);
       } else {
-        // Create new
-        await driveApi.files.create(driveFile, uploadMedia: media);
+        // Es la primera vez, la creamos de cero
+        await apiDrive.files.create(archivoDrive, uploadMedia: contenidoMultimedia);
       }
 
-      // Cleanup
-      await backupDir.delete(recursive: true);
-      await zipFile.delete();
+      // Limpiamos la basura que hemos creado en el móvil
+      await directorioCopia.delete(recursive: true);
+      await archivoZip.delete();
 
       return true;
     } catch (e) {
-      if (kDebugMode) print("Backup error: $e");
+      if (kDebugMode) print("Error brutal al hacer el backup: $e");
       return false;
     }
   }
 
-  /// Restore logic
-  Future<bool> restoreBackup() async {
-    final driveApi = await _getDriveApi();
-    if (driveApi == null) return false;
+  // --- Lógica para restaurar la copia de seguridad ---
+  Future<bool> restaurarCopiaSeguridad() async {
+    final apiDrive = await _obtenerApiDrive();
+    if (apiDrive == null) return false;
 
     try {
-      final q = "name = 'ticksave_backup.zip' and trashed = false";
-      final fileList = await driveApi.files.list(q: q, $fields: "files(id)");
+      // Buscamos el ZIP en el Drive del usuario
+      final consulta = "name = 'ticksave_backup.zip' and trashed = false";
+      final listaArchivos = await apiDrive.files.list(q: consulta, $fields: "files(id)");
       
-      if (fileList.files == null || fileList.files!.isEmpty) {
-        return false; // No backup found
+      if (listaArchivos.files == null || listaArchivos.files!.isEmpty) {
+        return false; // Ni rastro del backup
       }
 
-      final fileId = fileList.files!.first.id!;
+      final idArchivo = listaArchivos.files!.first.id!;
       
-      // Download
-      drive.Media media = await driveApi.files.get(fileId, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+      // 1. Descargamos el ZIP
+      drive.Media contenidoMultimedia = await apiDrive.files.get(idArchivo, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
       
-      final dir = await getTemporaryDirectory();
-      final zipFile = File('${dir.path}/ticksave_restore.zip');
+      final directorioTemporal = await getTemporaryDirectory();
+      final archivoZip = File('${directorioTemporal.path}/ticksave_restore.zip');
       
-      final sink = zipFile.openWrite();
-      await media.stream.pipe(sink);
-      await sink.flush();
-      await sink.close();
+      final flujoEscritura = archivoZip.openWrite();
+      await contenidoMultimedia.stream.pipe(flujoEscritura);
+      await flujoEscritura.flush();
+      await flujoEscritura.close();
 
-      // Unzip
-      final extractedDir = Directory('${dir.path}/ticksave_restore_tmp');
-      if (await extractedDir.exists()) await extractedDir.delete(recursive: true);
-      await extractedDir.create();
+      // 2. Lo descomprimimos
+      final directorioDescomprimido = Directory('${directorioTemporal.path}/ticksave_restore_tmp');
+      if (await directorioDescomprimido.exists()) await directorioDescomprimido.delete(recursive: true);
+      await directorioDescomprimido.create();
 
-      final bytes = await zipFile.readAsBytes();
-      final archive = ZipDecoder().decodeBytes(bytes);
+      final bytesZip = await archivoZip.readAsBytes();
+      final archivoComprimido = ZipDecoder().decodeBytes(bytesZip);
 
-      for (final file in archive) {
-        final filename = file.name;
-        if (file.isFile) {
-          final data = file.content as List<int>;
-          final outFile = File('${extractedDir.path}/$filename');
-          await outFile.create(recursive: true);
-          await outFile.writeAsBytes(data);
+      for (final archivo in archivoComprimido) {
+        final nombreArchivo = archivo.name;
+        if (archivo.isFile) {
+          final datos = archivo.content as List<int>;
+          final archivoSalida = File('${directorioDescomprimido.path}/$nombreArchivo');
+          await archivoSalida.create(recursive: true);
+          await archivoSalida.writeAsBytes(datos);
         } else {
-          Directory('${extractedDir.path}/$filename').create(recursive: true);
+          Directory('${directorioDescomprimido.path}/$nombreArchivo').create(recursive: true);
         }
       }
 
-      // Read JSON
-      final jsonFile = File('${extractedDir.path}/tickets.json');
-      if (!await jsonFile.exists()) return false;
+      // 3. Leemos el JSON con todos los tickets
+      final archivoJson = File('${directorioDescomprimido.path}/tickets.json');
+      if (!await archivoJson.exists()) return false;
 
-      final jsonString = await jsonFile.readAsString();
-      final List<dynamic> ticketsJson = jsonDecode(jsonString);
+      final textoJson = await archivoJson.readAsString();
+      final List<dynamic> jsonTickets = jsonDecode(textoJson);
 
-      // Recreate tickets locally / upload images
-      for (var tJson in ticketsJson) {
-        // If image exists locally, we upload it back via TicketService
-        String? newImageUrl;
-        if (tJson['local_image_path'] != null) {
-          final localFilename = tJson['local_image_path'];
-          final imgFile = File('${extractedDir.path}/$localFilename');
-          if (await imgFile.exists()) {
-             newImageUrl = await _ticketService.uploadTicketImage(imgFile);
+      // 4. Recreamos los tickets en Firebase y resubimos las imágenes
+      for (var jsonTicket in jsonTickets) {
+        String? nuevaUrlImagen;
+        
+        // Si teníamos la imagen guardada localmente, la subimos al Storage de Firebase
+        if (jsonTicket['ruta_imagen_local'] != null) {
+          final nombreArchivoLocal = jsonTicket['ruta_imagen_local'];
+          final archivoImagen = File('${directorioDescomprimido.path}/$nombreArchivoLocal');
+          if (await archivoImagen.exists()) {
+             nuevaUrlImagen = await _servicioTicket.subirImagenTicket(archivoImagen);
           }
         }
 
-        if (newImageUrl != null && newImageUrl.isNotEmpty) {
-           tJson['imagen'] = newImageUrl;
+        if (nuevaUrlImagen != null && nuevaUrlImagen.isNotEmpty) {
+           jsonTicket['url_imagen'] = nuevaUrlImagen; // Aquí usamos la clave original de Firebase
         }
 
-        // Add back to service
-        final ticketToRestore = Ticket.fromMap(tJson as Map<String, dynamic>, tJson['id']);
+        // Creamos nuestro objeto Ticket y lo mandamos a Firebase
+        final ticketParaRestaurar = Ticket.desdeMapa(jsonTicket as Map<String, dynamic>, jsonTicket['id']);
         
-        // Let's actually create it (this generates a new ID implicitly in Firestore if using .add or .set, 
-        // TicketService.addTicket does an .add ignoring the id, which is fine, we don't strictly need the old ID in restore
-        // unless we want to avoid duplicates.
-        // Wait, TicketService inside `addTicket` uses `.add` which generates a new ID.
-        // It's probably better to restore with original ID using `.doc(id).set(toMap())`, but TicketService only has updateTicket.
-        // For simplicity, we can do updateTicket inside a doc creation, but addTicket uses `.add()`.
-        
-        // Let's manually do set to preserve it, or update TicketService. Wait, TicketService has addTicket(Ticket ticket).
-        // addTicket uses .add() which ignores the custom ID. That's fine, it behaves exactly like a new ticket.
-        await _ticketService.addTicket(ticketToRestore);
+        // Usamos la función de añadir ticket, que crea uno nuevo y genera un ID.
+        // Ojo: Esto ignora el ID antiguo, pero nos vale para restaurar sin liarla.
+        await _servicioTicket.anadirTicket(ticketParaRestaurar);
       }
 
-      // Cleanup
-      await extractedDir.delete(recursive: true);
-      await zipFile.delete();
+      // Limpieza final
+      await directorioDescomprimido.delete(recursive: true);
+      await archivoZip.delete();
 
       return true;
     } catch (e) {
-      if (kDebugMode) print("Restore error: $e");
+      if (kDebugMode) print("Error gordo al restaurar: $e");
       return false;
     }
   }

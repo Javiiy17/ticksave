@@ -1,33 +1,41 @@
-/// Divisas disponibles en ajustes (solo símbolo de visualización; sin conversión de tipo de cambio).
-/// @author Luis Bermeo
-enum AppCurrency {
+/*
+ * ¿Qué hace este archivo?
+ * Aquí tenemos la lista de monedas que se pueden usar en la app.
+ * De momento solo cambia el dibujito (€, $...) para que quede bonito, 
+ * no hace cálculos matemáticos de cambio de divisa reales.
+ */
+enum MonedaApp {
   eur,
   usd,
   gbp,
 }
 
-extension AppCurrencyX on AppCurrency {
-  String get symbol => switch (this) {
-        AppCurrency.eur => '€',
-        AppCurrency.usd => r'$',
-        AppCurrency.gbp => '£',
+extension ExtensionMonedaApp on MonedaApp {
+  // El dibujito que sale al lado del precio
+  String get simbolo => switch (this) {
+        MonedaApp.eur => '€',
+        MonedaApp.usd => r'$',
+        MonedaApp.gbp => '£',
       };
 
-  String get code => switch (this) {
-        AppCurrency.eur => 'EUR',
-        AppCurrency.usd => 'USD',
-        AppCurrency.gbp => 'GBP',
+  // Las siglas para los bancos
+  String get codigo => switch (this) {
+        MonedaApp.eur => 'EUR',
+        MonedaApp.usd => 'USD',
+        MonedaApp.gbp => 'GBP',
       };
 
-  String get labelEs => switch (this) {
-        AppCurrency.eur => 'Euro (EUR, €)',
-        AppCurrency.usd => 'Dólar (USD, \$)',
-        AppCurrency.gbp => 'Libra (GBP, £)',
+  // El texto que sale en los ajustes cuando la app está en español
+  String get etiquetaEs => switch (this) {
+        MonedaApp.eur => 'Euro (EUR, €)',
+        MonedaApp.usd => 'Dólar (USD, \$)',
+        MonedaApp.gbp => 'Libra (GBP, £)',
       };
 
-  String get labelEn => switch (this) {
-        AppCurrency.eur => 'Euro (EUR, €)',
-        AppCurrency.usd => 'US dollar (USD, \$)',
-        AppCurrency.gbp => 'Pound (GBP, £)',
+  // El texto que sale en los ajustes cuando la app está en inglés
+  String get etiquetaEn => switch (this) {
+        MonedaApp.eur => 'Euro (EUR, €)',
+        MonedaApp.usd => 'US dollar (USD, \$)',
+        MonedaApp.gbp => 'Pound (GBP, £)',
       };
 }

@@ -10,37 +10,42 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'firebase_options.dart';
 
-/// Punto de entrada de la aplicación.
-///
-/// Aquí inicializamos Firebase antes de montar el árbol de widgets.
-/// @author Javier Abellán
+/*
+ * ¿Qué hace este archivo?
+ * Este es el corazón de la app, lo primero que se ejecuta al abrirla.
+ * Arrancamos la base de datos de Firebase y lanzamos la primera pantalla.
+ */
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); // Carga las movidas básicas de Flutter
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+    options: DefaultFirebaseOptions.currentPlatform, // Conecta con Google
   );
-  runApp(TickSaveApp(settings: AppSettingsController()));
+  runApp(AppTickSave(ajustes: ControladorAjustesApp()));
 }
 
-/// Widget raíz de la aplicación que administra el flujo del estado y la configuración general.
-/// @author Javier Abellán
-class TickSaveApp extends StatelessWidget {
-  const TickSaveApp({super.key, required this.settings});
+/*
+ * ¿Qué hace este archivo?
+ * El cascarón de la app. Aquí le decimos que use nuestro tema de colores oscuro,
+ * que esconda la etiquetita de "DEBUG" de la esquina, y que empiece mirando a ver 
+ * si el usuario ya había metido su correo antes o si le pedimos login.
+ */
+class AppTickSave extends StatelessWidget {
+  const AppTickSave({super.key, required this.ajustes});
 
-  final AppSettingsController settings;
+  final ControladorAjustesApp ajustes;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: settings,
+      listenable: ajustes,
       builder: (context, _) {
-        return AppSettingsScope(
-          notifier: settings,
+        return AlcanceAjustesApp(
+          notifier: ajustes,
           child: MaterialApp(
             title: 'TickSave',
-            debugShowCheckedModeBanner: false,
-            theme: appTheme,
-            locale: settings.locale,
+            debugShowCheckedModeBanner: false, // Fuera la banda roja fea de debug
+            theme: temaApp,
+            locale: ajustes.idioma,
             supportedLocales: const [
               Locale('es'),
               Locale('en'),
@@ -50,7 +55,7 @@ class TickSaveApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const AuthGate(),
+            home: const PuertaAutenticacion(),
           ),
         );
       },
@@ -58,24 +63,28 @@ class TickSaveApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+// Esto es como el portero de discoteca. Mira si tienes sesión iniciada o no.
+class PuertaAutenticacion extends StatelessWidget {
+  const PuertaAutenticacion({super.key});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+      builder: (context, instantanea) {
+        if (instantanea.connectionState == ConnectionState.waiting) {
+          // Mientras cargamos, ponemos una ruedita rosa dando vueltas
           return const Scaffold(
             backgroundColor: Color(0xFF090310),
             body: Center(child: CircularProgressIndicator(color: Color(0xFFE91E63))),
           );
         }
-        if (snapshot.hasData) {
-          return const HomeScreen();
+        // Si el usuario ya está logueado, pa' dentro
+        if (instantanea.hasData) {
+          return const PantallaInicio();
         }
-        return const LoginScreen();
+        // Si no está logueado, a la pantalla de poner el email
+        return const PantallaLogin();
       },
     );
   }

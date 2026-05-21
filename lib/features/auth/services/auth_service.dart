@@ -1,93 +1,99 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-/// Servicio de autenticación que maneja inicio de sesión (Google, Email)
-/// y el registro de usuarios en Firebase Auth.
-/// @author Javier Abellán
-class AuthService {
-  AuthService({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn})
-      : _auth = firebaseAuth ?? FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn();
+/*
+ * ¿Qué hace este archivo?
+ * Aquí gestionamos la puerta de entrada a la aplicación.
+ * Básicamente es el portero de discoteca: permite a la gente registrarse 
+ * con un correo y contraseña de toda la vida, o usar su cuenta de Google 
+ * para entrar más rápido sin comerse la cabeza.
+ */
+class ServicioAutenticacion {
+  ServicioAutenticacion({FirebaseAuth? autenticacionFirebase, GoogleSignIn? inicioSesionGoogle})
+      : _autenticacion = autenticacionFirebase ?? FirebaseAuth.instance,
+        _inicioSesionGoogle = inicioSesionGoogle ?? GoogleSignIn();
 
-  final FirebaseAuth _auth;
-  final GoogleSignIn _googleSignIn;
+  final FirebaseAuth _autenticacion;
+  final GoogleSignIn _inicioSesionGoogle;
 
-  /// Devuelve el usuario actual si hay sesión iniciada.
-  User? get currentUser => _auth.currentUser;
+  // Nos devuelve quién está logueado ahora mismo (si es que hay alguien).
+  User? get usuarioActual => _autenticacion.currentUser;
 
-  /// Inicia sesión con email/contraseña.
-  Future<UserCredential> signInWithEmail({
+  // Para entrar con correo y contraseña.
+  Future<UserCredential> iniciarSesionConEmail({
     required String email,
-    required String password,
+    required String contrasena,
   }) {
-    return _auth.signInWithEmailAndPassword(
+    return _autenticacion.signInWithEmailAndPassword(
       email: email.trim(),
-      password: password,
+      password: contrasena,
     );
   }
 
-  /// Crea una cuenta con email/contraseña.
-  Future<UserCredential> registerWithEmail({
+  // Para crearse una cuenta nueva desde cero.
+  Future<UserCredential> registrarConEmail({
     required String email,
-    required String password,
+    required String contrasena,
   }) {
-    return _auth.createUserWithEmailAndPassword(
+    return _autenticacion.createUserWithEmailAndPassword(
       email: email.trim(),
-      password: password,
+      password: contrasena,
     );
   }
 
-  /// Inicia sesión con Google.
-  Future<UserCredential?> signInWithGoogle() async {
+  // Para entrar rapidísimo usando la cuenta de Google.
+  Future<UserCredential?> iniciarSesionConGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null; // Cancelado
+      final GoogleSignInAccount? usuarioGoogle = await _inicioSesionGoogle.signIn();
+      // Si el usuario se echa para atrás y cancela a medias, no pasa nada
+      if (usuarioGoogle == null) return null; 
       
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      final GoogleSignInAuthentication authGoogle = await usuarioGoogle.authentication;
+      final AuthCredential credenciales = GoogleAuthProvider.credential(
+        accessToken: authGoogle.accessToken,
+        idToken: authGoogle.idToken,
       );
       
-      return await _auth.signInWithCredential(credential);
+      return await _autenticacion.signInWithCredential(credenciales);
     } catch (e) {
+      // Si explota, lanzamos el error para arriba
       rethrow;
     }
   }
 
-  /// Cierra la sesión.
-  Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    return _auth.signOut();
+  // Para cerrar el chiringuito y salir de la cuenta.
+  Future<void> cerrarSesion() async {
+    await _inicioSesionGoogle.signOut();
+    return _autenticacion.signOut();
   }
 }
 
-/// Traduce errores comunes de FirebaseAuth a mensajes entendibles para el usuario.
-///
-/// Nota: estos códigos pueden variar entre versiones, pero los más comunes se mantienen.
-/// @author Javier Abellán
-String friendlyAuthError(Object error) {
+/*
+ * Esta función es oro puro. Firebase nos devuelve unos errores rarísimos en inglés
+ * cuando la gente la lía (ej. contraseña corta, correo malo), así que esto lo traduce
+ * a algo que un humano normal pueda entender.
+ */
+String errorAutenticacionAmigable(Object error) {
   if (error is! FirebaseAuthException) {
-    return 'Ha ocurrido un error inesperado. Inténtalo de nuevo.';
+    return 'Ha ocurrido un error inesperado. Inténtalo de nuevo, a ver si hay suerte.';
   }
 
   switch (error.code) {
     case 'invalid-email':
-      return 'El email no tiene un formato válido.';
+      return 'El email tiene un formato rarísimo. Revísalo.';
     case 'user-not-found':
-      return 'No existe ninguna cuenta con ese email.';
+      return 'No nos suena ese email. ¿Seguro que estás registrado?';
     case 'wrong-password':
-      return 'La contraseña no es correcta.';
+      return 'Contraseña incorrecta. Piénsala bien y vuelve a intentar.';
     case 'email-already-in-use':
-      return 'Ese email ya está registrado. Prueba a iniciar sesión.';
+      return 'Ese correo ya está pillado. Mejor intenta iniciar sesión directamente.';
     case 'weak-password':
-      return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
+      return 'Esa contraseña es muy floja (necesitas 6 caracteres mínimo). ¡Métele algo más fuerte!';
     case 'operation-not-allowed':
-      return 'El método de acceso no está habilitado en Firebase.';
+      return 'El método de acceso no está habilitado en Firebase. Culpa nuestra.';
     case 'network-request-failed':
-      return 'Parece que no hay conexión. Revisa Internet e inténtalo de nuevo.';
+      return 'Parece que no tienes Internet. Revisa el WiFi o los datos móviles.';
     default:
-      return 'No se pudo completar la operación (${error.code}).';
+      return 'No se ha podido hacer la movida (${error.code}).';
   }
 }
-

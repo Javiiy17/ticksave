@@ -5,108 +5,122 @@ import 'edit_store_image_screen.dart';
 import '../../tickets/services/ticket_service.dart';
 import '../../../core/l10n/app_strings.dart';
 
-class StoreTicketsScreen extends StatefulWidget {
-  final String storeName;
+/*
+ * ¿Qué hace este archivo?
+ * Cuando pinchas en la carpeta de un comercio (por ejemplo, "Zara"), te trae a esta pantalla.
+ * Aquí mostramos una lista hacia abajo con todos los tickets que tienes de ese comercio.
+ * Es como abrir un cajón y ver todo lo que has comprado ahí.
+ */
+class PantallaTicketsComercio extends StatefulWidget {
+  final String nombreComercio;
   final List<Ticket> tickets;
 
-  const StoreTicketsScreen({
+  const PantallaTicketsComercio({
     super.key,
-    required this.storeName,
+    required this.nombreComercio,
     required this.tickets,
   });
 
   @override
-  State<StoreTicketsScreen> createState() => _StoreTicketsScreenState();
+  State<PantallaTicketsComercio> createState() => _EstadoPantallaTicketsComercio();
 }
 
-class _StoreTicketsScreenState extends State<StoreTicketsScreen> {
-  final TicketService _ticketService = TicketService();
-  late List<Ticket> _localTickets;
+class _EstadoPantallaTicketsComercio extends State<PantallaTicketsComercio> {
+  final ServicioTicket _servicioTicket = ServicioTicket();
+  late List<Ticket> _ticketsLocales;
 
   @override
   void initState() {
     super.initState();
-    _localTickets = List.from(widget.tickets);
-    // Ordenar por fecha más reciente
-    _localTickets.sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
+    // Nos hacemos una copia local para poder borrarlos o modificarlos de la lista al vuelo
+    _ticketsLocales = List.from(widget.tickets);
+    // Ordenamos todo de más nuevo a más viejo para que el último gasto salga el primero
+    _ticketsLocales.sort((a, b) => b.fechaCompra.compareTo(a.fechaCompra));
   }
 
-  void _openEditStoreImage(Ticket current) async {
-    final newUrl = await Navigator.push<String?>(
+  // Te lleva a otra pantalla para cambiarle la foto genérica a la carpeta de la tienda
+  void _abrirEditarImagenComercio(Ticket ticketActual) async {
+    final nuevaUrl = await Navigator.push<String?>(
       context,
       MaterialPageRoute<String?>(
-        builder: (context) => EditStoreImageScreen(
-          storeName: current.storeName,
-          currentImageUrl: current.imageUrl,
+        builder: (context) => PantallaEditarImagenComercio( // La traducimos luego
+          nombreComercio: ticketActual.nombreComercio,
+          currentImageUrl: ticketActual.urlImagen,
         ),
       ),
     );
 
-    if (newUrl == null || newUrl.isEmpty) return;
+    if (nuevaUrl == null || nuevaUrl.isEmpty) return;
 
-    current.imageUrl = newUrl;
-    await _ticketService.updateTicket(current);
+    ticketActual.urlImagen = nuevaUrl;
+    await _servicioTicket.actualizarTicket(ticketActual);
     setState(() {});
   }
 
-  Future<void> _deleteFolder() async {
-    final t = AppStrings.of(context);
-    final confirm = await showDialog<bool>(
+  // Si nos hemos cansado de esta tienda, nos cargamos la carpeta entera con todos sus tickets
+  Future<void> _eliminarCarpeta() async {
+    final textos = TextosApp.de(context);
+    final confirmacion = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF140A26),
-        title: Text(t.deleteFolderConfirmTitle, style: const TextStyle(color: Colors.white)),
-        content: Text(t.deleteFolderConfirmBody, style: const TextStyle(color: Colors.white70)),
+        title: Text(textos.tituloConfirmarEliminarCarpeta, style: const TextStyle(color: Colors.white)),
+        content: Text(textos.cuerpoConfirmarEliminarCarpeta, style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(t.cancel, style: const TextStyle(color: Colors.white70)),
+            child: Text(textos.cancelar, style: const TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(t.delete, style: const TextStyle(color: Colors.white)),
+            child: Text(textos.borrar, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
 
-    if (confirm == true) {
+    if (confirmacion == true) {
+      // Arrasamos con todos los tickets de esta tienda en la base de datos
       for (final ticket in widget.tickets) {
         if (ticket.id != null) {
-          await _ticketService.deleteTicket(ticket.id!);
+          await _servicioTicket.eliminarTicket(ticket.id!);
         }
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context); // Y volvemos al Home
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Mismo tono suave de listado
+      backgroundColor: const Color(0xFFF5F7FA), // Tonito claro para que parezca de día
       appBar: AppBar(
-        title: Text(AppStrings.of(context).storeTicketsTitle(widget.storeName)),
+        title: Text(TextosApp.de(context).tituloTicketsComercio(widget.nombreComercio)),
         backgroundColor: const Color(0xFF090310),
         foregroundColor: Colors.white,
         actions: [
+          // Botón de la papelera arriba a la derecha, bien escondidito para no darle sin querer
           IconButton(
             icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-            onPressed: _deleteFolder,
+            onPressed: _eliminarCarpeta,
           ),
         ],
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(20),
-        itemCount: _localTickets.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 20),
-        itemBuilder: (context, index) {
-          final t = _localTickets[index];
-          return TicketStoreCard(
-            ticket: t,
-            onEditPressed: () => _openEditStoreImage(t),
-            onDeleted: () {
+        itemCount: _ticketsLocales.length,
+        separatorBuilder: (context, indice) => const SizedBox(height: 20),
+        itemBuilder: (context, indice) {
+          final ticket = _ticketsLocales[indice];
+          // Pintamos cada ticket con su tarjeta to' chula
+          return TarjetaComercioTicket(
+            ticket: ticket,
+            alPulsarEditar: () => _abrirEditarImagenComercio(ticket),
+            alEliminar: () {
+              // Si han borrado el ticket por ahí dentro, lo quitamos de esta lista también
               setState(() {
-                _localTickets.removeWhere((item) => item.id == t.id);
+                _ticketsLocales.removeWhere((item) => item.id == ticket.id);
               });
             },
           );

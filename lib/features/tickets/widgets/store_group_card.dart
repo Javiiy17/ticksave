@@ -4,40 +4,50 @@ import '../../tickets/models/ticket.dart';
 import '../screens/store_tickets_screen.dart';
 import '../../../core/l10n/app_strings.dart';
 
-class StoreGroupCard extends StatelessWidget {
-  const StoreGroupCard({
+/*
+ * ¿Qué hace este archivo?
+ * Aquí creamos una "Tarjeta" visual súper chula que agrupa todos los tickets 
+ * de una misma tienda. Así, en vez de ver 50 tickets sueltos de Mercadona, 
+ * ves una sola cajita de "Mercadona" con el total de lo que te has gastado.
+ */
+class TarjetaGrupoComercio extends StatelessWidget {
+  const TarjetaGrupoComercio({
     super.key,
-    required this.storeName,
+    required this.nombreComercio,
     required this.tickets,
   });
 
-  final String storeName;
+  final String nombreComercio;
   final List<Ticket> tickets;
 
   @override
   Widget build(BuildContext context) {
-    // Calculamos suma total
-    double totalReel = 0.0;
-    for (var t in tickets) {
-      final stripped = t.price.replaceAll(RegExp(r'[^0-9.,]'), '').replaceAll(',', '.');
-      final val = double.tryParse(stripped);
-      if (val != null) totalReel += val;
+    // Vamos sumando lo que cuesta cada ticket para sacar el total gastado en esta tienda
+    double totalGastado = 0.0;
+    for (var ticket in tickets) {
+      // Limpiamos la basurilla del string (símbolos raros) para quedarnos solo con el número
+      final precioLimpio = ticket.precio.replaceAll(RegExp(r'[^0-9.,]'), '').replaceAll(',', '.');
+      final valorNumerico = double.tryParse(precioLimpio);
+      if (valorNumerico != null) totalGastado += valorNumerico;
     }
 
-    final String representativeImage = tickets.firstWhere(
-      (t) => t.imageUrl.isNotEmpty, 
+    // Pillamos la imagen del primer ticket que tenga una, para ponerla de fondo de la tarjeta y que quede bonito
+    final String imagenFondo = tickets.firstWhere(
+      (ticket) => ticket.urlImagen.isNotEmpty, 
       orElse: () => tickets.first
-    ).imageUrl;
+    ).urlImagen;
 
-    final safeUrl = rasterHttpUrlOrPlaceholder(representativeImage);
+    // Esto nos asegura que si la URL está rota no nos explote la app
+    final urlSegura = urlRasterHttpOPlaceholder(imagenFondo);
 
     return GestureDetector(
       onTap: () {
+        // Al tocar la tarjeta, nos vamos a otra pantalla para ver los tickets de esta tienda en detalle
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => StoreTicketsScreen(
-              storeName: storeName,
+            builder: (context) => PantallaTicketsComercio( // Nota: la pantalla PantallaTicketsComercio la traduciré luego
+              nombreComercio: nombreComercio,
               tickets: tickets,
             ),
           ),
@@ -62,12 +72,12 @@ class StoreGroupCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   child: ShaderMask(
-                    shaderCallback: (rect) {
+                    shaderCallback: (rectangulo) {
                       return const LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [Colors.black54, Colors.transparent],
-                      ).createShader(rect);
+                      ).createShader(rectangulo);
                     },
                     blendMode: BlendMode.darken,
                     child: Container(
@@ -75,7 +85,7 @@ class StoreGroupCard extends StatelessWidget {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         image: DecorationImage(
-                          image: NetworkImage(safeUrl),
+                          image: NetworkImage(urlSegura),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -90,7 +100,7 @@ class StoreGroupCard extends StatelessWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          storeName,
+                          nombreComercio,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -98,7 +108,7 @@ class StoreGroupCard extends StatelessWidget {
                             shadows: [Shadow(color: Colors.black45, blurRadius: 4)],
                           ),
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis, // Si el nombre es larguísimo, ponemos "..."
                         ),
                       ),
                     ],
@@ -122,14 +132,14 @@ class StoreGroupCard extends StatelessWidget {
                         const Icon(Icons.receipt_long, color: Colors.grey, size: 18),
                         const SizedBox(width: 8),
                         Text(
-                          '${tickets.length} ${AppStrings.of(context).receiptX}',
+                          '${tickets.length} ${TextosApp.de(context).recibosX}',
                           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
                         ),
                       ],
                     ),
                   ),
                   Text(
-                    '${totalReel.toStringAsFixed(2)} €',
+                    '${totalGastado.toStringAsFixed(2)} €',
                     style: TextStyle(
                       color: Theme.of(context).primaryColor,
                       fontSize: 18,

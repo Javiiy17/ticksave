@@ -5,38 +5,42 @@ import '../../home/screens/home_screen.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 
-/// Pantalla de inicio de sesión de la aplicación que interactúa
-/// con los métodos visuales para autenticar vía Redes o Email.
-/// @author Luis Bermeo
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+/*
+ * ¿Qué hace este archivo?
+ * Esta es la pantalla visual del Login. Aquí el usuario mete sus datos
+ * para entrar en TickSave. Es la primera pantalla de la app y la hemos puesto bien
+ * bonita con efectos de cristal y degradados para que se vea premium desde el segundo uno.
+ */
+class PantallaLogin extends StatefulWidget {
+  const PantallaLogin({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<PantallaLogin> createState() => _EstadoPantallaLogin();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
+class _EstadoPantallaLogin extends State<PantallaLogin> {
+  final TextEditingController _controladorEmail = TextEditingController();
+  final TextEditingController _controladorContrasena = TextEditingController();
+  final ServicioAutenticacion _servicioAutenticacion = ServicioAutenticacion();
 
-  bool _isLoading = false;
+  bool _estaCargando = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _controladorEmail.dispose();
+    _controladorContrasena.dispose();
     super.dispose();
   }
 
-  void _showErrorSnackBar(String message) {
+  // Nos saca un mensajito por abajo (SnackBar) si el usuario la lía
+  void _mostrarAvisoError(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
             const SizedBox(width: 12),
-            Expanded(child: Text(message, style: const TextStyle(color: Colors.white))),
+            Expanded(child: Text(mensaje, style: const TextStyle(color: Colors.white))),
           ],
         ),
         backgroundColor: Colors.redAccent,
@@ -46,65 +50,66 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// Inicia sesión con Firebase Auth usando email/contraseña.
-  Future<void> _signIn() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
+  // Cuando el usuario le da al botón de entrar con correo de toda la vida
+  Future<void> _iniciarSesion() async {
+    final email = _controladorEmail.text.trim();
+    final contrasena = _controladorContrasena.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      _showErrorSnackBar(AppStrings.of(context).fillEmailPass);
+    if (email.isEmpty || contrasena.isEmpty) {
+      _mostrarAvisoError(TextosApp.de(context).rellenarEmailContrasena);
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _estaCargando = true);
     try {
-      await _authService.signInWithEmail(email: email, password: password);
+      await _servicioAutenticacion.iniciarSesionConEmail(email: email, contrasena: contrasena);
       if (!mounted) return;
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute<void>(
-          builder: (context) => const HomeScreen(),
+          builder: (context) => const PantallaInicio(), // Pantalla de inicio
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar(friendlyAuthError(e));
+      _mostrarAvisoError(errorAutenticacionAmigable(e));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _estaCargando = false);
     }
   }
 
-  /// Inicia sesión con Google.
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
+  // Cuando el usuario es un vago y prefiere entrar con Google
+  Future<void> _iniciarSesionConGoogle() async {
+    setState(() => _estaCargando = true);
     try {
-      final cred = await _authService.signInWithGoogle(); 
+      final credenciales = await _servicioAutenticacion.iniciarSesionConGoogle(); 
       if (!mounted) return;
-      if (cred == null) {
-        setState(() => _isLoading = false);
-        return; // User canceled
+      if (credenciales == null) {
+        setState(() => _estaCargando = false);
+        return; // Si ha cancelado la ventanita de Google
       }
       
       Navigator.pushReplacement(
         context,
         MaterialPageRoute<void>(
-          builder: (context) => const HomeScreen(),
+          builder: (context) => const PantallaInicio(),
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar('Error con Google Sign-In: $e');
+      _mostrarAvisoError('La hemos liado con el Sign-In de Google: $e');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _estaCargando = false);
     }
   }
 
-  void _goToRegister() {
+  // Te manda pa la pantalla de registro
+  void _irARegistro() {
     Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (context) => const RegisterScreen(),
+        builder: (context) => const PantallaRegistro(),
       ),
     );
   }
@@ -132,9 +137,9 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildHeader(context),
+                  _construirCabecera(context),
                   const SizedBox(height: 40),
-                  _buildLoginCard(context),
+                  _construirTarjetaLogin(context),
                 ],
               ),
             ),
@@ -144,8 +149,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// Cabecera con icono estilizado y título premium de la app.
-  Widget _buildHeader(BuildContext context) {
+  // Cabecera to' guapa con el logo de nuestra app
+  Widget _construirCabecera(BuildContext context) {
     return Column(
       children: [
         Container(
@@ -184,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          AppStrings.of(context).protectWarrantiesCloud,
+          TextosApp.de(context).protegerGarantiasNube,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.6),
             fontSize: 16,
@@ -195,8 +200,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// Tarjeta Glassmorphism con el formulario de login y acciones.
-  Widget _buildLoginCard(BuildContext context) {
+  // Tarjeta de cristal donde va el formulario
+  Widget _construirTarjetaLogin(BuildContext context) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -218,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppStrings.of(context).welcomeBack,
+            TextosApp.de(context).bienvenidoDeNuevo,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -226,20 +231,20 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 30),
-          _buildTextFieldLabel(AppStrings.of(context).emailLabel),
+          _construirEtiquetaCampo(TextosApp.de(context).etiquetaEmail),
           TextField(
-            controller: _emailController,
+            controller: _controladorEmail,
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: AppStrings.of(context).emailHint,
+              hintText: TextosApp.de(context).pistaEmail,
               prefixIcon: const Icon(Icons.email_outlined, color: Colors.white54),
             ),
           ),
           const SizedBox(height: 20),
-          _buildTextFieldLabel(AppStrings.of(context).passwordLabel),
+          _construirEtiquetaCampo(TextosApp.de(context).etiquetaContrasena),
           TextField(
-            controller: _passwordController,
+            controller: _controladorContrasena,
             obscureText: true,
             style: const TextStyle(color: Colors.white),
             decoration: const InputDecoration(
@@ -252,9 +257,9 @@ class _LoginScreenState extends State<LoginScreen> {
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: _isLoading ? null : _signIn,
+              onPressed: _estaCargando ? null : _iniciarSesion,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent, // Background nulo para el degradado bajo él
+                backgroundColor: Colors.transparent, 
                 padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25),
@@ -269,14 +274,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Container(
                   alignment: Alignment.center,
-                  child: _isLoading
+                  child: _estaCargando
                       ? const SizedBox(
                           height: 24,
                           width: 24,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
                       : Text(
-                          AppStrings.of(context).loginButton,
+                          TextosApp.de(context).botonLogin,
                           style: const TextStyle(letterSpacing: 1.5, fontWeight: FontWeight.bold),
                         ),
                 ),
@@ -284,19 +289,19 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          _buildGoogleButton(),
+          _construirBotonGoogle(),
           const SizedBox(height: 30),
-          _buildRegisterLink(context),
+          _construirEnlaceRegistro(context),
         ],
       ),
     );
   }
 
-  Widget _buildTextFieldLabel(String text) {
+  Widget _construirEtiquetaCampo(String texto) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
       child: Text(
-        text,
+        texto,
         style: TextStyle(
           fontWeight: FontWeight.w600,
           color: Colors.white.withValues(alpha: 0.8),
@@ -306,13 +311,13 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  /// Botón de acceso con Google prémium.
-  Widget _buildGoogleButton() {
+  // El botón pijo para entrar con Google
+  Widget _construirBotonGoogle() {
     return SizedBox(
       width: double.infinity,
       height: 55,
       child: OutlinedButton.icon(
-        onPressed: _isLoading ? null : _signInWithGoogle,
+        onPressed: _estaCargando ? null : _iniciarSesionConGoogle,
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white.withValues(alpha: 0.02),
         ),
@@ -324,22 +329,22 @@ class _LoginScreenState extends State<LoginScreen> {
               const Icon(Icons.public, color: Colors.white),
         ),
         label: Text(
-          AppStrings.of(context).googleSignIn,
+          TextosApp.de(context).iniciarConGoogle,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
         ),
       ),
     );
   }
 
-  /// Enlace inferior para ir a la pantalla de registro de alto impacto.
-  Widget _buildRegisterLink(BuildContext context) {
+  // Si no tienes cuenta te vas a registrar
+  Widget _construirEnlaceRegistro(BuildContext context) {
     return Center(
       child: TextButton(
-        onPressed: _goToRegister,
+        onPressed: _irARegistro,
         style: TextButton.styleFrom(padding: const EdgeInsets.all(16)),
         child: Text.rich(
           TextSpan(
-            text: AppStrings.of(context).isNewUser,
+            text: TextosApp.de(context).esNuevoUsuario,
             style: const TextStyle(
               color: Colors.white54,
               fontSize: 13,
@@ -348,7 +353,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             children: [
               TextSpan(
-                text: AppStrings.of(context).signUpLink,
+                text: TextosApp.de(context).enlaceRegistro,
                 style: const TextStyle(
                   color: Color(0xFFFF4081),
                   fontWeight: FontWeight.w900,
@@ -364,4 +369,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-

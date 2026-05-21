@@ -1,56 +1,62 @@
-/// Utilidades para quitar / aplicar símbolos de divisa en textos de importe de la interfaz.
-/// @author Luis Bermeo
-class PriceCurrency {
-  PriceCurrency._();
+/*
+ * ¿Qué hace este archivo?
+ * Aquí tenemos unas herramientas para limpiar y formatear los precios.
+ * Por ejemplo, si el ticket pone "15,50€", esto le quita el símbolo para 
+ * guardarlo limpio en la base de datos, o se lo vuelve a poner para 
+ * pintarlo en pantalla.
+ */
+class DivisaPrecio {
+  DivisaPrecio._();
 
-  /// Quita sufijos habituales (€, \$, £, EUR, USD, GBP).
-  static String stripKnownSuffixes(String price) {
-    var t = price.trim();
-    while (t.isNotEmpty) {
-      t = t.trimRight();
-      if (t.endsWith('€')) {
-        t = t.substring(0, t.length - 1);
+  // Le quita la basurilla al final de los precios (€, $, GBP...)
+  static String quitarSufijosConocidos(String precio) {
+    var texto = precio.trim();
+    while (texto.isNotEmpty) {
+      texto = texto.trimRight();
+      if (texto.endsWith('€')) {
+        texto = texto.substring(0, texto.length - 1);
         continue;
       }
-      if (t.endsWith('\$')) {
-        t = t.substring(0, t.length - 1);
+      if (texto.endsWith('\$')) {
+        texto = texto.substring(0, texto.length - 1);
         continue;
       }
-      if (t.endsWith('£')) {
-        t = t.substring(0, t.length - 1);
+      if (texto.endsWith('£')) {
+        texto = texto.substring(0, texto.length - 1);
         continue;
       }
-      final low = t.toLowerCase();
-      if (low.endsWith('eur')) {
-        t = t.substring(0, t.length - 3);
+      final minusculas = texto.toLowerCase();
+      if (minusculas.endsWith('eur')) {
+        texto = texto.substring(0, texto.length - 3);
         continue;
       }
-      if (low.endsWith('usd')) {
-        t = t.substring(0, t.length - 3);
+      if (minusculas.endsWith('usd')) {
+        texto = texto.substring(0, texto.length - 3);
         continue;
       }
-      if (low.endsWith('gbp')) {
-        t = t.substring(0, t.length - 3);
+      if (minusculas.endsWith('gbp')) {
+        texto = texto.substring(0, texto.length - 3);
         continue;
       }
       break;
     }
-    return t.trim();
+    return texto.trim();
   }
 
-  /// Montante + símbolo elegido (p. ej. guardar tras editar).
-  static String withSymbol(String amountInput, String symbol) {
-    final base = stripKnownSuffixes(amountInput);
-    return '$base $symbol';
+  // Le pega el símbolo de la moneda al final del número
+  static String conSimbolo(String entradaImporte, String simbolo) {
+    final base = quitarSufijosConocidos(entradaImporte);
+    return '$base $simbolo';
   }
 
-  /// Texto para listas y detalle: si no parece un importe numérico, se devuelve tal cual.
-  static String formatForDisplay(String stored, String symbol) {
-    final trimmed = stored.trim();
-    final stripped = stripKnownSuffixes(trimmed);
-    if (stripped == trimmed && !RegExp(r'\d').hasMatch(trimmed)) {
-      return stored;
+  // Lo formatea bonito para enseñarlo en pantalla, pero si ve que no es un número
+  // (por ejemplo si el OCR ha leído "Cebollas"), lo devuelve tal cual para no romper nada.
+  static String formatearParaVista(String guardado, String simbolo) {
+    final recortado = guardado.trim();
+    final limpio = quitarSufijosConocidos(recortado);
+    if (limpio == recortado && !RegExp(r'\d').hasMatch(recortado)) {
+      return guardado;
     }
-    return '$stripped $symbol';
+    return '$limpio $simbolo';
   }
 }

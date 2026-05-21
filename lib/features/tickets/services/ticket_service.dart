@@ -9,153 +9,158 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/ticket.dart';
 
-/// Servicio encargado de gestionar la lógica de base de datos en Firestore,
-/// subida de imágenes a Cloud Storage y el motor subyacente de análisis de texto.
-/// @author Javier Abellán
-class TicketService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+/*
+ * ¿Qué hace este archivo?
+ * Aquí es donde cocinamos todo el tema de la base de datos de los tickets y el escáner de fotos.
+ * Básicamente, esta clase nos permite conectar nuestra app con Firestore (para guardar el texto),
+ * con Firebase Storage (para subir las fotos sin que explote) y con Google ML Kit, que es la IA
+ * que lee el texto de las imágenes para ahorrarnos picar los datos a mano. ¡Magia pura!
+ */
+class ServicioTicket {
+  final FirebaseStorage _almacenamiento = FirebaseStorage.instance;
+  final FirebaseAuth _autenticacion = FirebaseAuth.instance;
+  final FirebaseFirestore _baseDatos = FirebaseFirestore.instance;
 
-  /// Devuelve los tickets del usuario logueado en tiempo real =O
-  Stream<List<Ticket>> getUserTickets() {
-    final user = _auth.currentUser;
-    if (user == null) return Stream.value([]);
+  // Nos devuelve un chorro (Stream) de los tickets del usuario logueado, en tiempo real
+  Stream<List<Ticket>> obtenerTicketsUsuario() {
+    final usuario = _autenticacion.currentUser;
+    if (usuario == null) return Stream.value([]);
     
-    return _firestore
+    return _baseDatos
         .collection('users')
-        .doc(user.uid)
+        .doc(usuario.uid)
         .collection('tickets')
         .orderBy('fecha_compra', descending: true)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) => Ticket.fromMap(doc.data(), doc.id)).toList();
+        .map((instantanea) {
+      return instantanea.docs.map((doc) => Ticket.desdeMapa(doc.data(), doc.id)).toList();
     });
   }
 
-  /// Sube un ticket nuevo a la bdd de Firebase
-  Future<void> addTicket(Ticket ticket) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+  // Sube un ticket nuevecito a la base de datos de Firebase
+  Future<void> anadirTicket(Ticket ticket) async {
+    final usuario = _autenticacion.currentUser;
+    if (usuario == null) return;
     
-    ticket.userId = user.uid; // Por si acaso, forzamos que el ticket se asocie al ID del usuario
-    await _firestore
+    // Por si acaso, forzamos que el ticket se asocie al ID de nuestro usuario actual
+    ticket.idUsuario = usuario.uid;
+    await _baseDatos
         .collection('users')
-        .doc(user.uid)
+        .doc(usuario.uid)
         .collection('tickets')
-        .add(ticket.toMap())
+        .add(ticket.aMapa())
         .timeout(const Duration(seconds: 10));
   }
 
-  /// Sobreescribe los datos de un ticket
-  Future<void> updateTicket(Ticket ticket) async {
-    final user = _auth.currentUser;
-    if (user == null || ticket.id == null) return;
+  // Sobrescribe y actualiza los datos de un ticket que ya teníamos
+  Future<void> actualizarTicket(Ticket ticket) async {
+    final usuario = _autenticacion.currentUser;
+    if (usuario == null || ticket.id == null) return;
     
-    await _firestore
+    await _baseDatos
         .collection('users')
-        .doc(user.uid)
+        .doc(usuario.uid)
         .collection('tickets')
         .doc(ticket.id)
-        .update(ticket.toMap())
+        .update(ticket.aMapa())
         .timeout(const Duration(seconds: 10));
   }
   
-  /// Se carga el ticket y lo borra
-  Future<void> deleteTicket(String ticketId) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+  // Nos cargamos un ticket entero de la nube sin compasión
+  Future<void> eliminarTicket(String idTicket) async {
+    final usuario = _autenticacion.currentUser;
+    if (usuario == null) return;
     
-    await _firestore
+    await _baseDatos
         .collection('users')
-        .doc(user.uid)
+        .doc(usuario.uid)
         .collection('tickets')
-        .doc(ticketId)
+        .doc(idTicket)
         .delete();
   }
 
-  /// Comprimimos un pelín la foto antes de mandarla al Storage para que no tarde mil años
-  Future<String?> uploadTicketImage(File imageFile) async {
+  // Comprimimos un pelín la foto antes de mandarla al Storage para que no tarde mil años y no gastar megas tontamente
+  Future<String?> subirImagenTicket(File archivoImagen) async {
     try {
-      final user = _auth.currentUser;
-      if (user == null) return null;
+      final usuario = _autenticacion.currentUser;
+      if (usuario == null) return null;
 
       // A comprimir toca
-      final dir = await getTemporaryDirectory();
-      final targetPath = '${dir.absolute.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.jpg';
+      final directorio = await getTemporaryDirectory();
+      final rutaDestino = '${directorio.absolute.path}/${DateTime.now().millisecondsSinceEpoch}_comprimido.jpg';
       
-      final XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
-        imageFile.absolute.path, 
-        targetPath,
+      final XFile? archivoComprimido = await FlutterImageCompress.compressAndGetFile(
+        archivoImagen.absolute.path, 
+        rutaDestino,
         quality: 70,
         minWidth: 800,
       );
 
-      if (compressedFile == null) return null;
+      if (archivoComprimido == null) return null;
 
-      // A la nube con todo
-      final fileName = 'tickets/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = _storage.ref().child(fileName);
+      // Y pa' la nube con todo
+      final nombreArchivo = 'tickets/${usuario.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final referencia = _almacenamiento.ref().child(nombreArchivo);
       
-      final uploadTask = await ref.putFile(File(compressedFile.path));
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      final tareaSubida = await referencia.putFile(File(archivoComprimido.path));
+      final urlDescarga = await tareaSubida.ref.getDownloadURL();
       
-      return downloadUrl;
+      return urlDescarga;
     } catch (e) {
       // Si esto falla lo ignoramos por no petar la app entera, pero malo jaja
       // ignore: avoid_print
-      print('Error uploading image: $e');
+      print('Error brutal al subir la imagen: $e');
       return null;
     }
   }
 
-  /// Usamos IA (ML Kit) para adivinar el texto de la foto y sacar fecha y tienda
-  Future<Map<String, String>> extractTicketData(File imageFile) async {
-    final inputImage = InputImage.fromFile(imageFile);
-    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  // Usamos IA de la buena (ML Kit) para adivinar el texto de la foto y sacar de un tirón el comercio, la pasta y la fecha
+  Future<Map<String, String>> extraerDatosTicket(File archivoImagen) async {
+    final imagenEntrada = InputImage.fromFile(archivoImagen);
+    final reconocedorTexto = TextRecognizer(script: TextRecognitionScript.latin);
     
     try {
-      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+      final RecognizedText textoReconocido = await reconocedorTexto.processImage(imagenEntrada);
       
-      String possibleStore = "Desconocido";
-      String possibleDate = "Hoy";
-      String possiblePrice = "";
+      String posibleComercio = "Desconocido";
+      String posibleFecha = "Hoy";
+      String posiblePrecio = "";
       
-      // Patter loco de regex para fechas (12/03/2026, etc)
-      RegExp datePattern =  RegExp(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b');
-      // Regex general para un importe: '15,50' o '15.50'
-      RegExp pricePattern = RegExp(r'\b\d+[,.]\d{2}\b');
+      // Un poco de magia negra (Regex) para pillar fechas tipo 12/03/2026 o 12-03-26
+      RegExp patronFecha =  RegExp(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b');
+      // Regex general para pillar el dinerito: '15,50' o '15.50'
+      RegExp patronPrecio = RegExp(r'\b\d+[,.]\d{2}\b');
       
-      // Normalmente lo primerito en el ticket arriba del todo es el nombre
-      if (recognizedText.blocks.isNotEmpty) {
-        // Cogemos el primer bloque de texto
-        final firstBlock = recognizedText.blocks.first.text.replaceAll('\n', ' ').trim();
-        if (firstBlock.isNotEmpty && firstBlock.length > 2) {
-            possibleStore = firstBlock;
+      // Normalmente lo primerito en el ticket arriba del todo es el nombre de la tienda
+      if (textoReconocido.blocks.isNotEmpty) {
+        // Cogemos el primer bloque de texto y lo apañamos un poco
+        final primerBloque = textoReconocido.blocks.first.text.replaceAll('\n', ' ').trim();
+        if (primerBloque.isNotEmpty && primerBloque.length > 2) {
+            posibleComercio = primerBloque;
         }
       }
 
-      // Pasamos a buscar la fecha a ver si hay suerte
-      final String fullText = recognizedText.text;
-      final matchDate = datePattern.firstMatch(fullText);
-      if (matchDate != null) {
-        possibleDate = matchDate.group(0) ?? "Hoy";
+      // Pasamos a buscar la fecha a ver si hay suerte y la encontramos por ahí suelta
+      final String textoEntero = textoReconocido.text;
+      final matchFecha = patronFecha.firstMatch(textoEntero);
+      if (matchFecha != null) {
+        posibleFecha = matchFecha.group(0) ?? "Hoy";
       }
 
-      // Analizamos los precios (suele ser el último gran número de la factura)
-      final priceMatches = pricePattern.allMatches(fullText);
-      if (priceMatches.isNotEmpty) {
-        possiblePrice = priceMatches.last.group(0) ?? "";
+      // Analizamos los precios (suele ser el último número gordo al final de la factura antes de decir "Gracias por su visita")
+      final matchesPrecio = patronPrecio.allMatches(textoEntero);
+      if (matchesPrecio.isNotEmpty) {
+        posiblePrecio = matchesPrecio.last.group(0) ?? "";
       }
 
       return {
-        'storeName': possibleStore,
-        'date': possibleDate,
-        'price': possiblePrice,
+        'nombreComercio': posibleComercio,
+        'fecha': posibleFecha,
+        'precio': posiblePrecio,
       };
 
     } finally {
-      textRecognizer.close();
+      reconocedorTexto.close();
     }
   }
 }

@@ -3,71 +3,70 @@ import '../../../core/l10n/app_strings.dart';
 
 import '../services/auth_service.dart';
 
-/// Pantalla de registro de usuario en interfaz de usuario.
-///
-/// En esta versión inicial solo definimos el formulario y la navegación.
-/// @author Luis Bermeo
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+/*
+ * ¿Qué hace este archivo?
+ * Esta es la vista donde el usuario se hace una cuenta nueva en la app.
+ * Metes tu correo y tu clave súper segura, y te crea el hueco en Firebase 
+ * para empezar a guardar tus tickets.
+ */
+class PantallaRegistro extends StatefulWidget {
+  const PantallaRegistro({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<PantallaRegistro> createState() => _EstadoPantallaRegistro();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
+class _EstadoPantallaRegistro extends State<PantallaRegistro> {
+  final TextEditingController _controladorEmail = TextEditingController();
+  final TextEditingController _controladorContrasena = TextEditingController();
+  final ServicioAutenticacion _servicioAutenticacion = ServicioAutenticacion();
 
-  bool _isLoading = false;
+  bool _estaCargando = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _controladorEmail.dispose();
+    _controladorContrasena.dispose();
     super.dispose();
   }
 
-  /// Registra un usuario con email/contraseña usando Firebase Auth.
-  ///
-  /// Esta función vive en la pantalla porque coordina UI (loading/snackbars),
-  /// pero la llamada real a Firebase está encapsulada en `AuthService`.
-  Future<void> _register() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
+  // Esta función es la que se pega con Firebase para crear de verdad el usuario
+  Future<void> _registrar() async {
+    final email = _controladorEmail.text.trim();
+    final contrasena = _controladorContrasena.text;
 
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty || contrasena.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppStrings.of(context).fillEmailPass, style: const TextStyle(color: Colors.white)),
+          content: Text(TextosApp.de(context).rellenarEmailContrasena, style: const TextStyle(color: Colors.white)),
           backgroundColor: Colors.redAccent,
         ),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _estaCargando = true);
     try {
-      await _authService.registerWithEmail(email: email, password: password);
+      await _servicioAutenticacion.registrarConEmail(email: email, contrasena: contrasena);
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppStrings.of(context).accountCreatedSuccess, style: const TextStyle(color: Colors.white)),
+          content: Text(TextosApp.de(context).cuentaCreadaExito, style: const TextStyle(color: Colors.white)),
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context);
+      Navigator.pop(context); // Lo devolvemos al login para que entre
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(friendlyAuthError(e), style: const TextStyle(color: Colors.white)),
+          content: Text(errorAutenticacionAmigable(e), style: const TextStyle(color: Colors.white)),
           backgroundColor: Colors.redAccent,
         ),
       );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _estaCargando = false);
     }
   }
 
@@ -82,9 +81,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildHeader(context),
+                _construirCabecera(context),
                 const SizedBox(height: 30),
-                _buildRegisterCard(context),
+                _construirTarjetaRegistro(context),
               ],
             ),
           ),
@@ -93,7 +92,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  // Cabecera apañada
+  Widget _construirCabecera(BuildContext context) {
     return Column(
       children: [
         Container(
@@ -119,7 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          AppStrings.of(context).saveTicketsWarranties,
+          TextosApp.de(context).guardarTicketsGarantias,
           style: const TextStyle(
             color: Colors.white70,
             fontSize: 16,
@@ -129,7 +129,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildRegisterCard(BuildContext context) {
+  // Formulario en plan chulo
+  Widget _construirTarjetaRegistro(BuildContext context) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -150,7 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppStrings.of(context).createAccount,
+            TextosApp.de(context).crearCuenta,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -159,7 +160,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 30),
           Text(
-            AppStrings.of(context).emailLabel,
+            TextosApp.de(context).etiquetaEmail,
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: Colors.white.withValues(alpha: 0.9),
@@ -167,16 +168,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 8),
           TextField(
-            controller: _emailController,
+            controller: _controladorEmail,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              hintText: AppStrings.of(context).emailHint,
+              hintText: TextosApp.de(context).pistaEmail,
               prefixIcon: const Icon(Icons.alternate_email),
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            AppStrings.of(context).passwordLabel,
+            TextosApp.de(context).etiquetaContrasena,
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: Colors.white.withValues(alpha: 0.9),
@@ -184,7 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 8),
           TextField(
-            controller: _passwordController,
+            controller: _controladorContrasena,
             obscureText: true,
             decoration: const InputDecoration(
               hintText: '••••••••',
@@ -196,14 +197,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: _isLoading ? null : _register,
-              child: _isLoading
+              onPressed: _estaCargando ? null : _registrar,
+              child: _estaCargando
                   ? const SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(AppStrings.of(context).registerButton),
+                  : Text(TextosApp.de(context).botonRegistro),
             ),
           ),
           const SizedBox(height: 20),
@@ -213,11 +214,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  text: AppStrings.of(context).alreadyHaveAccount,
+                  text: TextosApp.de(context).yaTienesCuenta,
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                   children: [
                     TextSpan(
-                      text: AppStrings.of(context).loginLink,
+                      text: TextosApp.de(context).enlaceLogin,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
@@ -233,4 +234,3 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-
