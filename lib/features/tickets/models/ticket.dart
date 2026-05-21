@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 /*
- * ¿Qué hace este archivo?
  * Aquí es donde definimos qué es exactamente un "Ticket" para nuestra aplicación.
  * Javi y yo hemos creado esta clase para moldear los datos que vienen de la base de datos
  * y convertirlos en objetos que podamos usar fácilmente en Flutter. Básicamente es el molde 

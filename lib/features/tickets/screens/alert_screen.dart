@@ -60,7 +60,7 @@ class _EstadoPantallaAlerta extends State<PantallaAlerta> {
     setState(() {});
   }
 
-  // La magia ocurre aquí: crea un evento y lo tira pa'l calendario nativo
+  // La magia ocurre aquí: crea un evento y lo lleva al calendario nativo
   Future<void> _guardarAlerta() async {
     final trozos = _controladorFecha.text.split('/');
     if (trozos.length != 3) {

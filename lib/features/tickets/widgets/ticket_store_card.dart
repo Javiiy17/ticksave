@@ -5,9 +5,8 @@ import '../models/ticket.dart';
 import '../screens/ticket_detail_screen.dart';
 
 /*
- * ¿Qué hace este archivo?
  * Esta es la tarjetita individual de cada ticket. 
- * Tiene un diseño súper limpio para que el usuario pueda ver rápido 
+ * Tiene un diseño limpio para que el usuario pueda ver rápido 
  * lo que compró, cuándo y cuánto costó. Y si está a punto de caducar
  * la garantía, ¡le pone el borde rojo para avisar!
  */
@@ -132,7 +131,7 @@ class TarjetaComercioTicket extends StatelessWidget {
     );
   }
 
-  // La zona de abajo de la tarjeta donde ponemos la pasta, la fecha y si la garantía está pelada
+  // La zona de abajo de la tarjeta donde ponemos la pasta, la fecha y la garantía
   Widget _construirFilaInfoTicket(BuildContext context, bool caducaPronto) {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -173,7 +172,7 @@ class TarjetaComercioTicket extends StatelessWidget {
               ),
             ],
           ),
-          // Si quedan menos de 30 días, sacamos este cartelito rojo chillón
+          // Si quedan menos de 30 días, sacamos este cartelito rojo
           if (caducaPronto)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

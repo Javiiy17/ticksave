@@ -12,7 +12,6 @@ import '../../tickets/models/ticket.dart';
 import '../../tickets/services/ticket_service.dart';
 
 /*
- * ¿Qué hace este archivo?
  * Aquí manejamos toda la movida de las copias de seguridad en Google Drive.
  * Nos encargamos de empaquetar todos los tickets y las fotos en un archivo ZIP
  * para subirlo a la nube del usuario, y también de descargarlo y restaurarlo si 

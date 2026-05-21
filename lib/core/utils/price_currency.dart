@@ -1,14 +1,13 @@
 /*
- * ¿Qué hace este archivo?
- * Aquí tenemos unas herramientas para limpiar y formatear los precios.
- * Por ejemplo, si el ticket pone "15,50€", esto le quita el símbolo para 
- * guardarlo limpio en la base de datos, o se lo vuelve a poner para 
- * pintarlo en pantalla.
+ * Herramientas para limpiar y formatear los precios.
+ * Ejemplo: si el ticket pone "15,50€", le quita el símbolo para 
+ * guardarlo limpio en la base de datos, o se lo vuelve a poner 
+ * para mostrarlo en pantalla.
  */
 class DivisaPrecio {
   DivisaPrecio._();
 
-  // Le quita la basurilla al final de los precios (€, $, GBP...)
+  // Quita la basurilla al final de los precios (€, $, GBP...)
   static String quitarSufijosConocidos(String precio) {
     var texto = precio.trim();
     while (texto.isNotEmpty) {

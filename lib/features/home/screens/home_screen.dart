@@ -12,7 +12,6 @@ import '../../auth/screens/login_screen.dart';
 import '../widgets/header_icon.dart';
 
 /*
- * ¿Qué hace este archivo?
  * Esta es la pantalla principal, el "Home" donde aterrizas al entrar en la app.
  * Te enseña todas las carpetitas de tus tiendas y te deja buscar tickets.
  * También tiene el botón tocho rosa abajo para escanear tickets nuevos.
@@ -139,7 +138,7 @@ class _EstadoPantallaInicio extends State<PantallaInicio> {
                   IconoCabecera(
                     icono: Icons.logout,
                     alPulsar: () async {
-                      // Nos deslogueamos de Firebase y pa' la calle
+                      // Nos deslogueamos de Firebase
                       await ServicioAutenticacion().cerrarSesion();
                       if (!context.mounted) return;
                       Navigator.pushAndRemoveUntil(
@@ -163,7 +162,7 @@ class _EstadoPantallaInicio extends State<PantallaInicio> {
             ),
             onChanged: (valor) {
               setState(() {
-                // Lo pasamos todo a minúsculas pa que no haya líos al buscar "Zara" o "zara"
+                // Lo pasamos todo a minúsculas para que no haya líos al buscar "Zara" o "zara"
                 _consultaBusqueda = valor.toLowerCase();
               });
             },
@@ -214,7 +213,7 @@ class _EstadoPantallaInicio extends State<PantallaInicio> {
               }).toList();
 
               if (ticketsFiltrados.isEmpty) {
-                // Si no hay na de na, sacamos un texto triste
+                // Si no hay nada, sacamos un texto para animarte a escanear tus tickets
                 return Center(
                   child: Text(
                     textos.sinComerciosEncontrados,
@@ -251,7 +250,7 @@ class _EstadoPantallaInicio extends State<PantallaInicio> {
             },
           ),
           
-          // El botón gigante rosa pa' la foto
+          // El botón gigante rosa para escanear tus tickets de forma rápida.
           Positioned(
             bottom: 30,
             left: 20,

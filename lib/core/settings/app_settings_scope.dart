@@ -4,7 +4,7 @@ import 'app_settings.dart';
 
 /*
  * ¿Qué hace este archivo?
- * Es una movida de Flutter (InheritedNotifier) para que cualquier pantalla 
+ * Hace que cualquier pantalla 
  * pueda acceder a los ajustes del usuario súper rápido y sin tener que pasar 
  * variables de un lado a otro.
  */
@@ -15,11 +15,14 @@ class AlcanceAjustesApp extends InheritedNotifier<ControladorAjustesApp> {
     required super.child,
   });
 
-  // Con esto pillamos los ajustes desde cualquier parte de la app
+  // Pillamos los ajustes desde cualquier parte de la app
   static ControladorAjustesApp of(BuildContext context) {
     final alcance =
         context.dependOnInheritedWidgetOfExactType<AlcanceAjustesApp>();
-    assert(alcance != null, 'No hemos encontrado los Ajustes en esta pantalla, algo ha petado');
+    assert(
+      alcance != null, 
+      'No hemos encontrado los Ajustes en esta pantalla, algo ha petado'
+    );
     return alcance!.notifier!;
   }
 }

@@ -5,8 +5,7 @@ import '../screens/store_tickets_screen.dart';
 import '../../../core/l10n/app_strings.dart';
 
 /*
- * ¿Qué hace este archivo?
- * Aquí creamos una "Tarjeta" visual súper chula que agrupa todos los tickets 
+ * Aquí creamos una "Tarjeta" visual que agrupa todos los tickets 
  * de una misma tienda. Así, en vez de ver 50 tickets sueltos de Mercadona, 
  * ves una sola cajita de "Mercadona" con el total de lo que te has gastado.
  */
@@ -46,7 +45,7 @@ class TarjetaGrupoComercio extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PantallaTicketsComercio( // Nota: la pantalla PantallaTicketsComercio la traduciré luego
+            builder: (context) => PantallaTicketsComercio(
               nombreComercio: nombreComercio,
               tickets: tickets,
             ),

@@ -118,7 +118,7 @@ class _EstadoPantallaEditarTicket extends State<PantallaEditarTicket> {
   Future<void> _manejarGuardado() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Si venimos de la pantalla de detalle, le devolvemos los datos pa'tras
+    // Si venimos de la pantalla de detalle, le devolvemos los datos
     if (widget.ticketExistente != null || widget._compatStoreName != null) {
        final simbolo = AlcanceAjustesApp.of(context).simboloMoneda;
        final precioConSimbolo = DivisaPrecio.conSimbolo(_controladorPrecio.text.trim(), simbolo);
@@ -127,7 +127,7 @@ class _EstadoPantallaEditarTicket extends State<PantallaEditarTicket> {
        if (widget.ticketExistente != null && widget.ticketExistente!.id != null) {
           await _guardarEnFirebase();
        } else {
-         // Si es solo devolver datos al compañero (flujo de Javi)
+         // Si es solo devolver datos
          Navigator.pop(
            context,
            ResultadoEditarTicket(
@@ -138,7 +138,7 @@ class _EstadoPantallaEditarTicket extends State<PantallaEditarTicket> {
          );
        }
     } else {
-      // Si venimos del escáner y es un ticket nuevecito de paquete
+      // Si venimos del escáner y es un ticket nuevo
       await _guardarEnFirebase();
     }
   }
@@ -200,7 +200,7 @@ class _EstadoPantallaEditarTicket extends State<PantallaEditarTicket> {
             backgroundColor: Colors.green
           ),
         );
-        Navigator.pop(context, true); // Volvemos pa'tras
+        Navigator.pop(context, true); // Volvemos
       }
     } catch (e) {
       if (mounted) {

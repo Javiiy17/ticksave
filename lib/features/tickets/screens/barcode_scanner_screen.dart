@@ -11,7 +11,7 @@ enum ModoEscaneo { codigoBarras, qr }
  * ¿Qué hace este archivo?
  * Esta es la pantalla futurista donde se abre la cámara para escanear el código de barras
  * o el QR del ticket. Le hemos metido una animación de una rayita que sube y baja 
- * como los escáneres de verdad de los súper, queda to' guapo. 
+ * como los escáneres de verdad de los súper. 
  */
 class PantallaEscanerCodigo extends StatefulWidget {
   const PantallaEscanerCodigo({super.key});
@@ -80,7 +80,7 @@ class _EstadoPantallaEscanerCodigo extends State<PantallaEscanerCodigo> with Sin
 
     String formato = codigoDetectado.format.name;
 
-    // Y pa' la pantalla de edición, pasándole lo que hemos escaneado
+    // Y a la pantalla de edición, pasándole lo que hemos escaneado
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(

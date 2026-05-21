@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
 /*
- * ¿Qué hace este archivo?
- * Aquí definimos los colores de toda la app (el rosa chicle, el morado oscuro...).
- * Así, si un día decidimos que la app sea verde, solo cambiamos este archivo
- * y se cambia en todas las pantallas por arte de magia.
+ * Define los colores de toda la app.
+ * Si un día decidimos que la app sea verde, solo cambiamos este archivo
  */
 final ThemeData temaApp = ThemeData(
   useMaterial3: true,

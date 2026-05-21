@@ -107,7 +107,7 @@ class _EstadoPantallaDetalleTicket extends State<PantallaDetalleTicket> {
       _precio = resultado.precio;
     });
 
-    // Actualizamos el ticket de verdad y lo mandamos a Firebase a la velocidad de la luz
+    // Actualizamos el ticket de verdad y lo mandamos a Firebase
     final ticketActualizar = widget.ticketOrigen ?? (widget.ticket.id != null ? widget.ticket : null);
     if (ticketActualizar != null) {
       ticketActualizar.nombreComercio = _nombreComercio;
@@ -117,7 +117,7 @@ class _EstadoPantallaDetalleTicket extends State<PantallaDetalleTicket> {
     }
   }
 
-  // ¡A tomar por saco el ticket!
+  // Borra el ticket
   Future<void> _eliminarTicket() async {
     final textos = TextosApp.de(context);
     final confirmacion = await showDialog<bool>(
@@ -148,7 +148,7 @@ class _EstadoPantallaDetalleTicket extends State<PantallaDetalleTicket> {
     }
   }
 
-  // Compartir mola. Generamos la foto, el QR, y se lo mandamos a un colega por WhatsApp.
+  // Compartimos el ticket por WhatsApp
   Future<void> _compartirTicket() async {
     final textos = TextosApp.de(context);
     final mensaje = textos.mensajeCompartirTicket(_nombreComercio, _fecha, _precio, codigo: _codigoEscaneado);

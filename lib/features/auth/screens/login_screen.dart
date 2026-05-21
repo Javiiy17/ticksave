@@ -6,8 +6,7 @@ import '../services/auth_service.dart';
 import 'register_screen.dart';
 
 /*
- * ¿Qué hace este archivo?
- * Esta es la pantalla visual del Login. Aquí el usuario mete sus datos
+ * Pantalla visual del Login. Aquí el usuario mete sus datos
  * para entrar en TickSave. Es la primera pantalla de la app y la hemos puesto bien
  * bonita con efectos de cristal y degradados para que se vea premium desde el segundo uno.
  */
@@ -104,7 +103,7 @@ class _EstadoPantallaLogin extends State<PantallaLogin> {
     }
   }
 
-  // Te manda pa la pantalla de registro
+  // Te manda a la pantalla de registro
   void _irARegistro() {
     Navigator.push(
       context,
@@ -149,7 +148,7 @@ class _EstadoPantallaLogin extends State<PantallaLogin> {
     );
   }
 
-  // Cabecera to' guapa con el logo de nuestra app
+  // Cabecera con el logo de nuestra app
   Widget _construirCabecera(BuildContext context) {
     return Column(
       children: [
@@ -178,9 +177,9 @@ class _EstadoPantallaLogin extends State<PantallaLogin> {
           ),
         ),
         const SizedBox(height: 20),
-        const Text(
+        Text(
           'TickSave',
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 36,
             fontWeight: FontWeight.w900,
@@ -311,7 +310,7 @@ class _EstadoPantallaLogin extends State<PantallaLogin> {
     );
   }
 
-  // El botón pijo para entrar con Google
+  // El botón para entrar con Google
   Widget _construirBotonGoogle() {
     return SizedBox(
       width: double.infinity,

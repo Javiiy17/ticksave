@@ -113,7 +113,7 @@ class _EstadoPantallaTicketsComercio extends State<PantallaTicketsComercio> {
         separatorBuilder: (context, indice) => const SizedBox(height: 20),
         itemBuilder: (context, indice) {
           final ticket = _ticketsLocales[indice];
-          // Pintamos cada ticket con su tarjeta to' chula
+          // Pintamos cada ticket con su tarjeta
           return TarjetaComercioTicket(
             ticket: ticket,
             alPulsarEditar: () => _abrirEditarImagenComercio(ticket),

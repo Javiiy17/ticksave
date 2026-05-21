@@ -2,7 +2,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /*
- * ¿Qué hace este archivo?
  * Aquí gestionamos la puerta de entrada a la aplicación.
  * Básicamente es el portero de discoteca: permite a la gente registrarse 
  * con un correo y contraseña de toda la vida, o usar su cuenta de Google 
@@ -75,7 +74,7 @@ class ServicioAutenticacion {
  */
 String errorAutenticacionAmigable(Object error) {
   if (error is! FirebaseAuthException) {
-    return 'Ha ocurrido un error inesperado. Inténtalo de nuevo, a ver si hay suerte.';
+    return 'Ha ocurrido un error inesperado. Inténtalo de nuevo.';
   }
 
   switch (error.code) {
@@ -94,6 +93,6 @@ String errorAutenticacionAmigable(Object error) {
     case 'network-request-failed':
       return 'Parece que no tienes Internet. Revisa el WiFi o los datos móviles.';
     default:
-      return 'No se ha podido hacer la movida (${error.code}).';
+      return 'No se ha podido hacer el login (${error.code}).';
   }
 }

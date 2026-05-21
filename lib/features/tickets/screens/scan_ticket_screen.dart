@@ -35,7 +35,7 @@ class _EstadoPantallaEscanearTicket extends State<PantallaEscanearTicket> {
 
       setState(() {
         _archivoImagen = File(foto.path);
-        _procesando = true; // Sacamos la ruedita de carga pa' que el usuario sepa que la app está pensando
+        _procesando = true; // Sacamos la ruedita de carga para que el usuario sepa que la app está pensando
       });
 
       // Extraer datos leyendo el texto de la foto con IA (OCR)
@@ -104,7 +104,7 @@ class _EstadoPantallaEscanearTicket extends State<PantallaEscanearTicket> {
     );
   }
 
-  // Texto explicativo para tontos en medio de la pantalla
+  // Texto explicativo en medio de la pantalla
   Widget _construirVistaInstrucciones() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,

@@ -28,7 +28,7 @@ class ControladorAjustesApp extends ChangeNotifier {
   void cambiarIdioma(Locale nuevoIdioma) {
     if (_idioma == nuevoIdioma) return; // Si es el mismo ni nos molestamos
     _idioma = nuevoIdioma;
-    notifyListeners(); // ¡Eh, que hemos cambiado el idioma, que se actualice todo!
+    notifyListeners(); // si hemos cambiado el idioma, se actualiza todo!
   }
 
   void cambiarMoneda(MonedaApp nuevaMoneda) {

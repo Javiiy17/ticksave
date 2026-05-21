@@ -271,7 +271,7 @@ class _EstadoPantallaEditarImagenComercio extends State<PantallaEditarImagenCome
     );
   }
 
-  // Guardar o a la verga
+  // Guardar o no
   Widget _construirBotones() {
     return Column(
       children: [

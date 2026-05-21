@@ -86,7 +86,7 @@ class PantallaAjustes extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Cajita para elegir si habla en Español o en Guiri
+                // Cajita para elegir si habla en Español o Ingles
                 _construirTarjetaSeccion(
                   context,
                   icono: Icons.language,
@@ -123,7 +123,7 @@ class PantallaAjustes extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 
-                // Cajita para elegir la pasta (€, $, £...)
+                // Cajita para elegir la moneda (€, $, £...)
                 _construirTarjetaSeccion(
                   context,
                   icono: Icons.payments_outlined,

@@ -4,7 +4,6 @@ import '../../../core/l10n/app_strings.dart';
 import '../services/auth_service.dart';
 
 /*
- * ¿Qué hace este archivo?
  * Esta es la vista donde el usuario se hace una cuenta nueva en la app.
  * Metes tu correo y tu clave súper segura, y te crea el hueco en Firebase 
  * para empezar a guardar tus tickets.
@@ -92,7 +91,7 @@ class _EstadoPantallaRegistro extends State<PantallaRegistro> {
     );
   }
 
-  // Cabecera apañada
+  // Cabecera con el logo de la app
   Widget _construirCabecera(BuildContext context) {
     return Column(
       children: [
@@ -129,7 +128,7 @@ class _EstadoPantallaRegistro extends State<PantallaRegistro> {
     );
   }
 
-  // Formulario en plan chulo
+  // Formulario de registro
   Widget _construirTarjetaRegistro(BuildContext context) {
     return Container(
       width: double.infinity,

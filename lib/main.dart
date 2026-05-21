@@ -11,12 +11,13 @@ import 'features/home/screens/home_screen.dart';
 import 'firebase_options.dart';
 
 /*
- * ¿Qué hace este archivo?
  * Este es el corazón de la app, lo primero que se ejecuta al abrirla.
  * Arrancamos la base de datos de Firebase y lanzamos la primera pantalla.
+ * 
+ * @author Javier Abellán y Luis Bermeo
  */
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Carga las movidas básicas de Flutter
+  WidgetsFlutterBinding.ensureInitialized(); // Carga lo básico de Flutter
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform, // Conecta con Google
   );
@@ -24,8 +25,7 @@ Future<void> main() async {
 }
 
 /*
- * ¿Qué hace este archivo?
- * El cascarón de la app. Aquí le decimos que use nuestro tema de colores oscuro,
+ * Cascarón de la app. Le decimos que use nuestro tema de colores oscuro,
  * que esconda la etiquetita de "DEBUG" de la esquina, y que empiece mirando a ver 
  * si el usuario ya había metido su correo antes o si le pedimos login.
  */
@@ -63,7 +63,7 @@ class AppTickSave extends StatelessWidget {
   }
 }
 
-// Esto es como el portero de discoteca. Mira si tienes sesión iniciada o no.
+// Mira si tienes sesión iniciada o no.
 class PuertaAutenticacion extends StatelessWidget {
   const PuertaAutenticacion({super.key});
 
@@ -79,11 +79,11 @@ class PuertaAutenticacion extends StatelessWidget {
             body: Center(child: CircularProgressIndicator(color: Color(0xFFE91E63))),
           );
         }
-        // Si el usuario ya está logueado, pa' dentro
+        // Si el usuario ya está logueado, a PantallaInicio
         if (instantanea.hasData) {
           return const PantallaInicio();
         }
-        // Si no está logueado, a la pantalla de poner el email
+        // Si no está logueado, a PantallaLogin
         return const PantallaLogin();
       },
     );
